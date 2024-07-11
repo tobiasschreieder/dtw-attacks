@@ -2,6 +2,7 @@ from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
 from config import Config
 
+from joblib import Parallel, delayed
 from typing import Dict, List
 import os
 import pickle
@@ -33,13 +34,14 @@ class Subject:
         self.subject_keys = ['signal', 'label', 'subject']
         self.wrist_keys = ['ACC', 'BVP', 'EDA', 'TEMP']
 
-        data = pd.read_csv(os.path.join(data_path, "1000_subj_synthetic_CGAN.csv"))
+        data = pd.read_csv(os.path.join(data_path, "10000_subj_synthetic_CGAN.csv"))
         self.data = data[data.sid == subject_number]
         self.labels = self.data['Label']
 
-    def get_subject_dataframe(self) -> pd.DataFrame:
+    def get_subject_dataframe(self, resample_factor: int) -> pd.DataFrame:
         """
         Preprocess and upsample WESAD dataset
+        :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
         :return: Dataframe with the preprocessed data of the subject
         """
         wrist_data = self.data
@@ -51,12 +53,12 @@ class Subject:
         temp_signal = wrist_data['TEMP']
 
         # Upsampling data to match data sampling rate of 64 Hz using fourier method as described in Paper/dataset
-        bvp_upsampled = signal.resample(bvp_signal, (len(bvp_signal) * 64))
-        eda_upsampled = signal.resample(eda_signal, (len(bvp_signal) * 64))
-        temp_upsampled = signal.resample(temp_signal, (len(bvp_signal) * 64))
-        acc_x_upsampled = signal.resample(acc_x_signal, (len(bvp_signal) * 64))
-        acc_y_upsampled = signal.resample(acc_y_signal, (len(bvp_signal) * 64))
-        acc_z_upsampled = signal.resample(acc_z_signal, (len(bvp_signal) * 64))
+        bvp_upsampled = signal.resample(bvp_signal, round(len(bvp_signal) * 64 / resample_factor))
+        eda_upsampled = signal.resample(eda_signal, round(len(bvp_signal) * 64 / resample_factor))
+        temp_upsampled = signal.resample(temp_signal, round(len(bvp_signal) * 64 / resample_factor))
+        acc_x_upsampled = signal.resample(acc_x_signal, round(len(bvp_signal) * 64 / resample_factor))
+        acc_y_upsampled = signal.resample(acc_y_signal, round(len(bvp_signal) * 64 / resample_factor))
+        acc_z_upsampled = signal.resample(acc_z_signal, round(len(bvp_signal) * 64 / resample_factor))
 
         # Upsampling labels to 64 Hz
         upsampled_labels = list()
@@ -65,7 +67,7 @@ class Subject:
                 upsampled_labels.append(label)
 
         label_df = pd.DataFrame(upsampled_labels, columns=["label"])
-        label_df.index = [(1 / 64) * i for i in range(len(label_df))]  # 64 is the sampling rate of the label
+        label_df.index = [(1 / (64 * resample_factor)) * i for i in range(len(label_df))]  # 64 = sampling rate of label
         label_df.index = pd.to_datetime(label_df.index, unit='s')
 
         data_arrays = zip(bvp_upsampled, eda_upsampled, acc_x_upsampled, acc_y_upsampled, acc_z_upsampled,
@@ -87,25 +89,37 @@ class WesadCGan(Dataset):
     """
     Class to generate, load and preprocess WESAD-cGAN dataset
     """
-    def __init__(self, dataset_size: int):
+    def __init__(self, dataset_size: int, resample_factor: int, n_jobs: int = 1):
         """
-        Try to load WESAD-GAN dataset (wesad_cgan_data.pickle); if not available -> generate wesad_cgan_data.pickle
+        Try to load WESAD-GAN dataset (wesad_cgan_data.pickle); if not available -> generate wesad_cgan.pickle
         :param dataset_size: Specify amount of subjects in dataset
+        :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+        :param n_jobs: Number of processes to use (parallelization)
         """
+        def parallel_dataset_generation(current_subject_id: int) -> pd.DataFrame:
+            """
+            Parallel loading and preprocessing of dataset
+            :param current_subject_id: Id of current subject
+            :return: Dataframe with the preprocessed data of the subject
+            """
+            subject = Subject(os.path.join(cfg.data_dir, "WESAD_cGAN"), current_subject_id)
+            data = subject.get_subject_dataframe(resample_factor=resample_factor)
+            return data
+
         super().__init__(dataset_size=dataset_size)
 
         self.name = "WESAD-cGAN"
 
         # List with all available subject_ids
         start = 1001
-        if dataset_size > 1000:
-            print("Size of the data set is too large! Set size to 1000.")
-            dataset_size = 1000
+        if dataset_size > 10000:
+            print("Size of the data set is too large! Set size to 10000.")
+            dataset_size = 10000
         end = start + dataset_size
         subject_list = [x for x in range(start, end)]
         self.subject_list = subject_list
 
-        filename = "wesad_cgan_data_" + str(dataset_size) + ".pickle"
+        filename = "wesad_cgan_subj" + str(dataset_size) + "_dsf" + str(resample_factor) + ".pickle"
 
         try:
             with open(os.path.join(cfg.data_dir, filename), "rb") as f:
@@ -113,14 +127,12 @@ class WesadCGan(Dataset):
 
         except FileNotFoundError:
             print("FileNotFoundError: Invalid directory structure! Please make sure that /dataset exists.")
-            print("Creating wesad_cgan_data.pickle from WESAD-cGAN dataset.")
+            print("Creating wesad_cgan.pickle from WESAD-cGAN dataset.")
 
-            # Load data of all subjects in subject_list
-            data_dict = dict()
-            for i in self.subject_list:
-                subject = Subject(os.path.join(cfg.data_dir, "WESAD_cGAN"), i)
-                data = subject.get_subject_dataframe()
-                data_dict.setdefault(i, data)
+            # Load data of all subjects in subject_list (parallel)
+            with Parallel(n_jobs=n_jobs) as parallel:
+                data_dict = parallel(delayed(parallel_dataset_generation)(current_subject_id=subject_id)
+                                     for subject_id in self.subject_list)
             self.data = data_dict
 
             # Save data_dict
@@ -138,31 +150,7 @@ class WesadCGan(Dataset):
         :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
         :return: Dictionary with preprocessed data
         """
-        data_dict = dict()
-        data = self.data
-
-        if resample_factor is not None:
-            for subject_id in data:
-                sensor_data = data[subject_id]
-                label_data = data[subject_id]["label"]
-                sensor_data = sensor_data.drop("label", axis=1)
-                column_names = sensor_data.columns.values.tolist()
-
-                sensor_data = signal.resample(sensor_data, round(len(data[subject_id]) / resample_factor))
-                sensor_data = pd.DataFrame(data=sensor_data, columns=column_names)
-
-                label_data.index = [(1 / resample_factor) * i for i in range(len(label_data))]
-                label_data.index = pd.to_datetime(label_data.index, unit='s')
-
-                sensor_data.index = pd.to_datetime(sensor_data.index, unit='s')
-                sensor_data = sensor_data.join(label_data)
-                sensor_data['label'] = sensor_data['label'].fillna(method='ffill')
-                sensor_data.reset_index(drop=True, inplace=True)
-
-                data_dict.setdefault(subject_id, sensor_data)
-
-        else:
-            data_dict = data
+        data_dict = self.data
 
         # Run data-processing
         data_dict = data_processing.process_data(data_dict=data_dict)
