@@ -53,12 +53,12 @@ class Subject:
         temp_signal = wrist_data['TEMP']
 
         # Upsampling data to match data sampling rate of 64 Hz using fourier method as described in Paper/dataset
-        bvp_upsampled = signal.resample(bvp_signal, round(len(bvp_signal) * 64 / resample_factor))
-        eda_upsampled = signal.resample(eda_signal, round(len(bvp_signal) * 64 / resample_factor))
-        temp_upsampled = signal.resample(temp_signal, round(len(bvp_signal) * 64 / resample_factor))
-        acc_x_upsampled = signal.resample(acc_x_signal, round(len(bvp_signal) * 64 / resample_factor))
-        acc_y_upsampled = signal.resample(acc_y_signal, round(len(bvp_signal) * 64 / resample_factor))
-        acc_z_upsampled = signal.resample(acc_z_signal, round(len(bvp_signal) * 64 / resample_factor))
+        bvp_upsampled = signal.resample(bvp_signal, len(bvp_signal) * 64)
+        eda_upsampled = signal.resample(eda_signal, len(bvp_signal) * 64)
+        temp_upsampled = signal.resample(temp_signal, len(bvp_signal) * 64)
+        acc_x_upsampled = signal.resample(acc_x_signal, len(bvp_signal) * 64)
+        acc_y_upsampled = signal.resample(acc_y_signal, len(bvp_signal) * 64)
+        acc_z_upsampled = signal.resample(acc_z_signal, len(bvp_signal) * 64)
 
         # Upsampling labels to 64 Hz
         upsampled_labels = list()
@@ -67,7 +67,7 @@ class Subject:
                 upsampled_labels.append(label)
 
         label_df = pd.DataFrame(upsampled_labels, columns=["label"])
-        label_df.index = [(1 / (64 * resample_factor)) * i for i in range(len(label_df))]  # 64 = sampling rate of label
+        label_df.index = [(1 / 64) * i for i in range(len(label_df))]  # 64 = sampling rate of label
         label_df.index = pd.to_datetime(label_df.index, unit='s')
 
         data_arrays = zip(bvp_upsampled, eda_upsampled, acc_x_upsampled, acc_y_upsampled, acc_z_upsampled,
@@ -82,6 +82,23 @@ class Subject:
 
         # Normalize data (no train test leakage since data frame per subject)
         df = (df - df.min()) / (df.max() - df.min())
+
+        # Run downsampling of dataframe (resample_factor = 1000 -> len(signal) / 1000)
+        label_data = df["label"]
+        df = df.drop("label", axis=1)
+        column_names = df.columns.values.tolist()
+
+        df = signal.resample(df, round(len(df) / resample_factor))
+        df = pd.DataFrame(data=df, columns=column_names)
+
+        label_data.index = [(1 / resample_factor) * i for i in range(len(label_data))]
+        label_data.index = pd.to_datetime(label_data.index, unit='s')
+
+        df.index = pd.to_datetime(df.index, unit='s')
+        df = df.join(label_data)
+        df['label'] = df['label'].fillna(method='ffill')
+        df.reset_index(drop=True, inplace=True)
+
         return df
 
 
@@ -131,8 +148,14 @@ class WesadCGan(Dataset):
 
             # Load data of all subjects in subject_list (parallel)
             with Parallel(n_jobs=n_jobs) as parallel:
-                data_dict = parallel(delayed(parallel_dataset_generation)(current_subject_id=subject_id)
-                                     for subject_id in self.subject_list)
+                data = parallel(delayed(parallel_dataset_generation)(current_subject_id=subject_id)
+                                for subject_id in self.subject_list)
+
+            data_dict = dict()
+            subject_counter = 1001
+            for d in data:
+                data_dict.setdefault(subject_counter, d)
+                subject_counter += 1
             self.data = data_dict
 
             # Save data_dict
