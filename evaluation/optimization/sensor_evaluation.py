@@ -46,8 +46,9 @@ def string_to_list(input_string: str) -> List[List[str]]:
 
 def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                 dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
-                                rank_method: str = "score", average_method: str = "weighted-mean",
-                                subject_ids: List[int] = None, k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
+                                subject_ids: List[int], rank_method: str = "score",
+                                average_method: str = "weighted-mean", k_list: List[int] = None) \
+        -> Dict[int, Dict[str, float]]:
     """
     Calculate precisions per sensor-combination, mean over classes and test-window-sizes
     :param dataset: Specify dataset
@@ -57,9 +58,9 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param rank_method: Specify rank-method "score" or "rank" (Choose best one)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (Choose best one)
-    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
     :return: Dictionary with results
     """
@@ -172,7 +173,7 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
 
 def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                 dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, rank_method: str,
-                                average_method: str) -> Dict[str, int]:
+                                average_method: str, subject_ids: List[int]) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
@@ -184,6 +185,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify ranking-method ("score" or "rank")
     :param average_method: Specify class averaging-method ("mean" or "weighted-mean)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :return: Dictionary with results
     """
     amount_subjects = len(dataset.subject_list)
@@ -191,7 +193,8 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
                                           data_processing=data_processing, dtw_attack=dtw_attack,
                                           result_selection_method=result_selection_method, n_jobs=n_jobs, k_list=k_list,
-                                          rank_method=rank_method, average_method=average_method)
+                                          rank_method=rank_method, average_method=average_method,
+                                          subject_ids=subject_ids)
     best_k_parameters = dict()
 
     set_method = False
@@ -253,8 +256,8 @@ def get_best_sensor_configuration(res: Dict[int, Dict[str, float]], printable_ve
 
 
 def run_sensor_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                          dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, rank_method: str = "score",
-                          average_method: str = "weighted-mean", k_list: List[int] = None):
+                          dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, subject_ids: List[int],
+                          rank_method: str = "score", average_method: str = "weighted-mean", k_list: List[int] = None):
     """
     Run and save evaluation for sensor-combinations
     :param dataset: Specify dataset
@@ -264,6 +267,7 @@ def run_sensor_evaluation(dataset: Dataset, resample_factor: int, data_processin
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param rank_method: Specify rank-method "score" or "rank" (use best performing method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (use best performing method)
     :param k_list: Specify k-parameters
@@ -275,12 +279,14 @@ def run_sensor_evaluation(dataset: Dataset, resample_factor: int, data_processin
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
                                           data_processing=data_processing, dtw_attack=dtw_attack,
                                           result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                          rank_method=rank_method, average_method=average_method, k_list=k_list)
+                                          rank_method=rank_method, average_method=average_method,
+                                          subject_ids=subject_ids, k_list=k_list)
     best_sensors = get_best_sensor_configuration(res=results, printable_version=True)
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
                                                     data_processing=data_processing, dtw_attack=dtw_attack,
                                                     result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                                    rank_method=rank_method, average_method=average_method)
+                                                    subject_ids=subject_ids, rank_method=rank_method,
+                                                    average_method=average_method)
 
     text = [create_md_precision_sensors(rank_method=rank_method, average_method=average_method, results=results,
                                         best_sensors=best_sensors, best_k_parameters=best_k_parameters)]

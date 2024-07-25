@@ -34,7 +34,8 @@ def calculate_precision(dataset: Dataset, resample_factor: int, data_processing:
     for subject_id in subject_ids:
         results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
                                result_selection_method=result_selection_method, dtw_attack=dtw_attack,
-                               subject_id=subject_id, method=method, test_window_size=test_window_size)
+                               subject_ids=subject_ids, subject_id=subject_id, method=method,
+                               test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
         real_rank = realistic_rank(overall_ranks=overall_ranks, subject_id=subject_id)
 
@@ -70,9 +71,9 @@ def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dic
 
 
 def calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                            dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, k: int, step_width: float,
-                            method: str, test_window_size: int, use_existing_weightings: bool) \
-        -> Dict[int, Dict[str, Union[float, List[float]]]]:
+                            dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, subject_ids: List[int],
+                            k: int, step_width: float, method: str, test_window_size: int,
+                            use_existing_weightings: bool) -> Dict[int, Dict[str, Union[float, List[float]]]]:
     """
     Calculate and save maximum possible precision value with all sensor weight characteristics
     :param dataset: Specify dataset
@@ -82,6 +83,7 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, data_process
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k: Specify k for precision@k
     :param step_width: Specify step_with for weights
     :param method: Specify method of alignments
@@ -98,9 +100,10 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, data_process
         realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset, resample_factor=resample_factor,
                                                                 data_processing=data_processing, dtw_attack=dtw_attack,
                                                                 result_selection_method=result_selection_method,
-                                                                n_jobs=n_jobs, rank_method="max",
-                                                                combinations=sensor_combinations, method=method,
-                                                                test_window_size=test_window_size, weights=test_weights)
+                                                                n_jobs=n_jobs, subject_ids=subject_ids,
+                                                                rank_method="max", combinations=sensor_combinations,
+                                                                method=method, test_window_size=test_window_size,
+                                                                weights=test_weights)
         precision_combinations = calculate_precision_combinations(dataset=dataset,
                                                                   realistic_ranks_comb=realistic_ranks_comb, k=k)
 

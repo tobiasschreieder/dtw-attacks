@@ -153,7 +153,7 @@ def realistic_rank(overall_ranks: Dict[str, int], subject_id: int) -> int:
 
 def get_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
                         result_selection_method: str, rank_method: str, method: str, test_window_size: int,
-                        subject_ids: List[int] = None) -> List[int]:
+                        subject_ids: List[int]) -> List[int]:
     """
     Get list with sorted realistic ranks
     :param dataset: Specify dataset
@@ -175,7 +175,8 @@ def get_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing:
     for subject in subject_ids:
         results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
                                dtw_attack=dtw_attack, result_selection_method=result_selection_method,
-                               subject_id=subject, method=method, test_window_size=test_window_size)
+                               subject_ids=subject_ids, subject_id=subject, method=method,
+                               test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
 
         real_rank = realistic_rank(overall_ranks, subject)
@@ -340,7 +341,7 @@ def run_calculate_ranks_combinations(dataset: Dataset, results: Dict[str, Dict[s
 def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                      dtw_attack: DtwAttack, result_selection_method: str, rank_method: str,
                                      combinations: List[List[str]], method: str, test_window_size: int, n_jobs: int,
-                                     subject_ids: List[int] = None, weights: Dict[str, float] = None,
+                                     subject_ids: List[int], weights: Dict[str, float] = None,
                                      runtime_simulation: bool = False) \
         -> Dict[str, List[int]]:
     """
@@ -370,8 +371,9 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
         """
         results = load_results(dataset=dataset, resample_factor=resample_factor,
                                data_processing=data_processing, dtw_attack=dtw_attack,
-                               result_selection_method=result_selection_method, subject_id=current_subject_id,
-                               method=method, test_window_size=test_window_size, runtime_simulation=runtime_simulation)
+                               result_selection_method=result_selection_method, subject_ids=subject_ids,
+                               subject_id=current_subject_id, method=method, test_window_size=test_window_size,
+                               runtime_simulation=runtime_simulation)
         overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
                                                               rank_method=current_rank_method,
                                                               combinations=combinations, weights=weights)

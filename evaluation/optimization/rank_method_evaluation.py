@@ -21,7 +21,7 @@ cfg = Config.get()
 
 def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                      dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
-                                     subject_ids: List = None, k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
+                                     subject_ids: List[int], k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
     """
     Calculate precision@k values for rank-method evaluation -> Mean over sensor-combinations, methods
     :param dataset: Specify dataset
@@ -175,7 +175,8 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, dat
 
 
 def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int) -> Dict[str, int]:
+                                dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
+                                subject_ids: List[int]) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
@@ -185,6 +186,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :return: Dictionary with results
     """
     amount_subjects = len(dataset.subject_list)
@@ -192,7 +194,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor,
                                                data_processing=data_processing, dtw_attack=dtw_attack,
                                                result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                               k_list=k_list)
+                                               subject_ids=subject_ids, k_list=k_list)
     best_k_parameters = dict()
 
     set_method = False
@@ -234,7 +236,7 @@ def get_best_rank_method_configuration(res: Dict[int, Dict[str, float]]) -> str:
 
 def run_rank_method_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
-                               k_list: List[int] = None):
+                               subject_ids: List[int], k_list: List[int] = None):
     """
     Run and save evaluation for rank-methods
     :param dataset: Specify dataset
@@ -244,6 +246,7 @@ def run_rank_method_evaluation(dataset: Dataset, resample_factor: int, data_proc
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k-parameters
     """
     # Specify k-parameters
@@ -253,11 +256,12 @@ def run_rank_method_evaluation(dataset: Dataset, resample_factor: int, data_proc
     results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor,
                                                data_processing=data_processing, dtw_attack=dtw_attack,
                                                result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                               k_list=k_list)
+                                               subject_ids=subject_ids, k_list=k_list)
     best_rank_method = get_best_rank_method_configuration(res=results)
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
                                                     data_processing=data_processing, dtw_attack=dtw_attack,
-                                                    result_selection_method=result_selection_method, n_jobs=n_jobs)
+                                                    result_selection_method=result_selection_method, n_jobs=n_jobs,
+                                                    subject_ids=subject_ids)
     text = [create_md_precision_rank_method(results=results, best_rank_method=best_rank_method,
                                             best_k_parameters=best_k_parameters)]
 

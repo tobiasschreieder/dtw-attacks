@@ -23,9 +23,9 @@ cfg = Config.get()
 
 
 def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, result_selection_method, n_jobs: int, rank_method: str = "score",
-                                average_method: str = "weighted-mean", sensor_combination=None,
-                                subject_ids: List = None, k_list: List[int] = None) -> Dict[int, Dict[int, float]]:
+                                dtw_attack: DtwAttack, result_selection_method, n_jobs: int, subject_ids: List[int],
+                                rank_method: str = "score", average_method: str = "weighted-mean",
+                                sensor_combination=None, k_list: List[int] = None) -> Dict[int, Dict[int, float]]:
     """
     Calculate precisions per test-window-size, mean over sensors and test-window-size
     :param dataset: Specify dataset
@@ -35,10 +35,10 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (Choose best one)
     :param sensor_combination: Specify sensor-combination e.g. [["bvp", "acc", "temp"]] (Choose best on)
-    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
     :return: Dictionary with results
     """
@@ -51,8 +51,6 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
     class_distributions = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
                                                  data_processing=data_processing)
 
-    if subject_ids is None:
-        subject_ids = dataset.subject_list
     if sensor_combination is None:
         sensor_combination = [["bvp", "eda", "acc", "temp"]]
 
@@ -147,8 +145,9 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
 
 
 def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, rank_method: str,
-                                average_method: str, sensor_combination: List[List[str]]) -> Dict[float, int]:
+                                dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
+                                subject_ids: List[int], rank_method: str, average_method: str,
+                                sensor_combination: List[List[str]]) -> Dict[float, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
@@ -158,6 +157,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param rank_method: Specify ranking-method ("score" or "rank")
     :param average_method: Specify class averaging-method ("mean" or "weighted-mean)
     :param sensor_combination: Specify sensor-combination e.g. [["bvp", "acc", "temp"]] (Choose best on)
@@ -167,9 +167,9 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
     results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
                                           data_processing=data_processing, dtw_attack=dtw_attack,
-                                          result_selection_method=result_selection_method, n_jobs=n_jobs, k_list=k_list,
-                                          rank_method=rank_method, average_method=average_method,
-                                          sensor_combination=sensor_combination)
+                                          result_selection_method=result_selection_method, n_jobs=n_jobs,
+                                          subject_ids=subject_ids, k_list=k_list, rank_method=rank_method,
+                                          average_method=average_method, sensor_combination=sensor_combination)
     best_k_parameters = dict()
 
     set_method = False
@@ -255,8 +255,9 @@ def get_best_window_configuration(res: Dict[int, Dict[int, float]]) -> int:
 
 
 def run_window_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                          dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, rank_method: str = "score",
-                          average_method: str = "weighted-mean", sensor_combination=None, k_list: List[int] = None):
+                          dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, subject_ids: List[int],
+                          rank_method: str = "score", average_method: str = "weighted-mean", sensor_combination=None,
+                          k_list: List[int] = None):
     """
     Run and save evaluation for sensor-combinations
     :param dataset: Specify dataset
@@ -266,6 +267,7 @@ def run_window_evaluation(dataset: Dataset, resample_factor: int, data_processin
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param rank_method: Specify rank-method "score" or "rank" (use best performing method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (use best performing method)
     :param sensor_combination: Specify sensor-combination e.g. [["acc", "temp"]] (Choose best on)
@@ -282,12 +284,13 @@ def run_window_evaluation(dataset: Dataset, resample_factor: int, data_processin
                                           data_processing=data_processing, dtw_attack=dtw_attack,
                                           result_selection_method=result_selection_method, n_jobs=n_jobs,
                                           rank_method=rank_method, average_method=average_method,
-                                          sensor_combination=sensor_combination, k_list=k_list)
+                                          sensor_combination=sensor_combination, subject_ids=subject_ids, k_list=k_list)
     best_window = get_best_window_configuration(res=results)
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
                                                     data_processing=data_processing, dtw_attack=dtw_attack,
                                                     result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                                    rank_method=rank_method, average_method=average_method,
+                                                    subject_ids=subject_ids, rank_method=rank_method,
+                                                    average_method=average_method,
                                                     sensor_combination=sensor_combination)
 
     text = [create_md_precision_windows(rank_method=rank_method, average_method=average_method, results=results,
