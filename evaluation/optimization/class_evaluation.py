@@ -126,7 +126,8 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_proc
                                                                             subject_ids=subject_ids)
                     # Calculate precision values with specified rank-method
                     precision_comb = calculate_precision_combinations(dataset=dataset,
-                                                                      realistic_ranks_comb=realistic_ranks_comb, k=k)
+                                                                      realistic_ranks_comb=realistic_ranks_comb, k=k,
+                                                                      subject_ids=subject_ids)
 
                     # Calculate mean over precision-values per sensor-combinations for specified rank-method
                     sensor_combined_precision = statistics.mean(precision_comb.values())

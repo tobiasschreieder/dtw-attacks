@@ -90,7 +90,7 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, dat
                     precision_comb_rank = calculate_precision_combinations(dataset=dataset,
                                                                            realistic_ranks_comb=
                                                                            realistic_ranks_comb_rank,
-                                                                           k=k)
+                                                                           k=k, subject_ids=subject_ids)
 
                     # Calculate realistic ranks with rank method "score"
                     realistic_ranks_comb_score = get_realistic_ranks_combinations(dataset=dataset,
@@ -109,7 +109,7 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, dat
                     precision_comb_score = calculate_precision_combinations(dataset=dataset,
                                                                             realistic_ranks_comb=
                                                                             realistic_ranks_comb_score,
-                                                                            k=k)
+                                                                            k=k, subject_ids=subject_ids)
 
                     sensor_combined_precision_rank = statistics.mean(precision_comb_rank.values())
                     sensor_combined_precision_score = statistics.mean(precision_comb_score.values())

@@ -157,7 +157,8 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dat
                                                             n_jobs=n_jobs, rank_method=rank_method,
                                                             combinations=sensor_combinations, method=method,
                                                             test_window_size=test_window_size, subject_ids=subject_ids)
-    precision_comb_1 = calculate_precision_combinations(dataset=dataset, realistic_ranks_comb=realistic_ranks_comb, k=1)
+    precision_comb_1 = calculate_precision_combinations(dataset=dataset, realistic_ranks_comb=realistic_ranks_comb, k=1,
+                                                        subject_ids=subject_ids)
 
     text += "| Precision@k | "
     for i in precision_comb_1:
@@ -172,7 +173,8 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dat
     if k_list is None:
         for i in range(1, max_k + 1):
             precision_comb = calculate_precision_combinations(dataset=dataset,
-                                                              realistic_ranks_comb=realistic_ranks_comb, k=i)
+                                                              realistic_ranks_comb=realistic_ranks_comb, k=i,
+                                                              subject_ids=subject_ids)
             text += "| k = " + str(i) + " | "
             for k, v in precision_comb.items():
                 text += bold_maximum_precision(precision_comb, v) + " | "
@@ -180,7 +182,8 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dat
     else:
         for i in k_list:
             precision_comb = calculate_precision_combinations(dataset=dataset,
-                                                              realistic_ranks_comb=realistic_ranks_comb, k=i)
+                                                              realistic_ranks_comb=realistic_ranks_comb, k=i,
+                                                              subject_ids=subject_ids)
             text += "| k = " + str(i) + " | "
             for k, v in precision_comb.items():
                 text += bold_maximum_precision(precision_comb, v) + " | "

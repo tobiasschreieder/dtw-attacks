@@ -121,7 +121,8 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
                                                                             subject_ids=subject_ids)
                     # Calculate precision values with rank-method
                     precision_comb = calculate_precision_combinations(dataset=dataset,
-                                                                      realistic_ranks_comb=realistic_ranks_comb, k=k)
+                                                                      realistic_ranks_comb=realistic_ranks_comb, k=k,
+                                                                      subject_ids=subject_ids)
 
                     # Save results in dictionary
                     results_class[k].setdefault(method, precision_comb)

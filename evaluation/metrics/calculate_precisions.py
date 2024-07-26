@@ -47,16 +47,18 @@ def calculate_precision(dataset: Dataset, resample_factor: int, data_processing:
     return precision
 
 
-def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dict[str, List[int]], k: int) \
-        -> Dict[str, float]:
+def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dict[str, List[int]], k: int,
+                                     subject_ids: List[int]) -> Dict[str, float]:
     """
     Calculate precision@k scores for sensor combinations
     :param dataset: Specify dataset
     :param realistic_ranks_comb: Dictionary with rank combinations
     :param k: Specify parameter k for precision@k
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :return: Dictionary with precision values for combinations
     """
-    subject_list = dataset.subject_list
+    if subject_ids is None:
+        subject_ids = dataset.subject_list
     precision_comb = dict()
     for i in realistic_ranks_comb:
         true_positives = 0
@@ -64,7 +66,7 @@ def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dic
             if j < k:
                 true_positives += 1
 
-        precision = round(true_positives / len(subject_list), 3)
+        precision = round(true_positives / len(subject_ids), 3)
         precision_comb.setdefault(i, precision)
 
     return precision_comb
@@ -105,7 +107,8 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, data_process
                                                                 method=method, test_window_size=test_window_size,
                                                                 weights=test_weights)
         precision_combinations = calculate_precision_combinations(dataset=dataset,
-                                                                  realistic_ranks_comb=realistic_ranks_comb, k=k)
+                                                                  realistic_ranks_comb=realistic_ranks_comb, k=k,
+                                                                  subject_ids=subject_ids)
 
         results = list()
         for c, p in precision_combinations.items():
