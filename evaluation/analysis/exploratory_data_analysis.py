@@ -3,6 +3,7 @@ from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_complete_alignment_results
 from config import Config
 
+from typing import List
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,13 +12,18 @@ import numpy as np
 cfg = Config.get()
 
 
-def plot_subject_data(dataset: Dataset, resample_factor: int, data_processing: DataProcessing):
+def plot_subject_data(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                      subject_ids: List[int] = None):
     """
     Plot sensor-value distribution for all subjects
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     """
+    if subject_ids is None:
+        subject_ids = dataset.subject_list
+
     data_dict = dataset.load_dataset(resample_factor=resample_factor, data_processing=data_processing)  # read data_dict
 
     data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
@@ -28,7 +34,7 @@ def plot_subject_data(dataset: Dataset, resample_factor: int, data_processing: D
 
     print("Plotting subject-data! PNG-File saved at " + processing_path)
 
-    for subject in data_dict:
+    for subject in subject_ids:
         plt.plot(data_dict[subject])
         plt.legend(data_dict[subject].keys(), loc="center left")
         plt.title(label="Signal for Subject: " + str(subject), loc="center")
