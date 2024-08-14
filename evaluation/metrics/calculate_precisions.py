@@ -34,8 +34,7 @@ def calculate_precision(dataset: Dataset, resample_factor: int, data_processing:
     for subject_id in subject_ids:
         results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
                                result_selection_method=result_selection_method, dtw_attack=dtw_attack,
-                               subject_ids=subject_ids, subject_id=subject_id, method=method,
-                               test_window_size=test_window_size)
+                               subject_id=subject_id, method=method, test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
         real_rank = realistic_rank(overall_ranks=overall_ranks, subject_id=subject_id)
 

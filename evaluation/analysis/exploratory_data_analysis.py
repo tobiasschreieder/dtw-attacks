@@ -35,15 +35,18 @@ def plot_subject_data(dataset: Dataset, resample_factor: int, data_processing: D
     print("Plotting subject-data! PNG-File saved at " + processing_path)
 
     for subject in subject_ids:
+        plt.rcParams.update({"font.size": 12})
         plt.plot(data_dict[subject])
         plt.legend(data_dict[subject].keys(), loc="center left")
-        plt.title(label="Signal for Subject: " + str(subject), loc="center")
+        plt.title(label="Signal for Subject: " + str(subject), loc="center", fontsize=20)
         plt.ylabel('sensor value')
         plt.xlabel('window')
+        # x, labels = plt.xticks()
+        # plt.xticks(x[1:9], ["0", "20k", "40k", "60k", "80k", "100k", "120k", "140k"])
 
         try:
             os.makedirs(eda_path, exist_ok=True)
-            file_name = "eda_plot_S" + str(subject) + ".png"
+            file_name = "eda_plot_S" + str(subject) + ".pdf"
             plt.savefig(fname=os.path.join(processing_path, file_name))
 
         except FileNotFoundError:

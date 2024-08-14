@@ -175,8 +175,7 @@ def get_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing:
     for subject in subject_ids:
         results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
                                dtw_attack=dtw_attack, result_selection_method=result_selection_method,
-                               subject_ids=subject_ids, subject_id=subject, method=method,
-                               test_window_size=test_window_size)
+                               subject_id=subject, method=method, test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
 
         real_rank = realistic_rank(overall_ranks, subject)
@@ -371,7 +370,7 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
         """
         results = load_results(dataset=dataset, resample_factor=resample_factor,
                                data_processing=data_processing, dtw_attack=dtw_attack,
-                               result_selection_method=result_selection_method, subject_ids=subject_ids,
+                               result_selection_method=result_selection_method,
                                subject_id=current_subject_id, method=method, test_window_size=test_window_size,
                                runtime_simulation=runtime_simulation)
         overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,

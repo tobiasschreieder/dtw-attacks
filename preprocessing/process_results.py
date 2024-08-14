@@ -16,7 +16,7 @@ cfg = Config.get()
 
 
 def load_results(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                 result_selection_method: str, subject_ids: List[int], subject_id: int, method: str,
+                 result_selection_method: str, subject_id: int, method: str,
                  test_window_size: int, runtime_simulation: bool = False) -> Dict[str, Dict[str, float]]:
     """
     Load DTW-attack results from ../out_weighted/alignments/
@@ -26,15 +26,13 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
-    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param subject_id: Specify subject
     :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
     :param runtime_simulation: If True -> only simulate isolated attack
     :return: Dictionary with results
     """
-    if subject_ids is None:
-        subject_ids = dataset.subject_list
+    subject_ids = dataset.subject_list  # All subject-ids in dataset
     subject_ids_string = list()
     for subject in subject_ids:
         subject_ids_string.append(str(subject))

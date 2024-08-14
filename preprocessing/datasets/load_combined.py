@@ -2,7 +2,7 @@ from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.datasets.dataset import Dataset
 from preprocessing.datasets.load_wesad import Wesad
-from preprocessing.datasets.load_dgan import WesadDGan
+# from preprocessing.datasets.load_dgan import WesadDGan
 from preprocessing.datasets.load_cgan import WesadCGan
 from config import Config
 
@@ -17,7 +17,7 @@ cfg = Config.get()
 
 
 # List with all available subject_ids
-SUBJECT_LIST = Wesad(dataset_size=15).subject_list + WesadCGan(dataset_size=15).subject_list
+SUBJECT_LIST = Wesad(dataset_size=15).subject_list + WesadCGan(dataset_size=15, resample_factor=1000).subject_list
 
 # All available classes
 CLASSES = Wesad(dataset_size=15).get_classes()
@@ -46,10 +46,11 @@ class WesadCombined(Dataset):
             print("Creating wesad_combined_data.pickle from WESAD and WESAD-GAN dataset.")
 
             # Load data of all subjects in subject_list
-            wesad_data = Wesad(dataset_size=dataset_size).load_dataset(resample_factor=1,
+            wesad_data = Wesad(dataset_size=dataset_size).load_dataset(resample_factor=1000,
                                                                        data_processing=StandardProcessing())
-            wesad_gan_data = WesadCGan(dataset_size=dataset_size).load_dataset(resample_factor=1,
-                                                                               data_processing=StandardProcessing())
+            wesad_gan_data = WesadCGan(dataset_size=dataset_size,
+                                       resample_factor=1000).load_dataset(resample_factor=1000,
+                                                                          data_processing=StandardProcessing())
             data_dict = wesad_data
             for k, v in wesad_gan_data.items():
                 data_dict.setdefault(k, v)

@@ -188,8 +188,8 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
             for subject in subject_list:
                 results = load_results(dataset=dataset, resample_factor=resample_factor,
                                        data_processing=data_processing, dtw_attack=dtw_attack,
-                                       result_selection_method=result_selection_method, subject_ids=subject_ids,
-                                       subject_id=subject, method=method, test_window_size=test_window_size)
+                                       result_selection_method=result_selection_method, subject_id=subject,
+                                       method=method, test_window_size=test_window_size)
                 overall_ranks_rank, individual_ranks_rank = run_calculate_ranks(dataset=dataset, results=results,
                                                                                 rank_method="rank")
                 overall_ranks_score, individual_ranks_score = run_calculate_ranks(dataset=dataset, results=results,

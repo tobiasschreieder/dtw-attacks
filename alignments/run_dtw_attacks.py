@@ -99,7 +99,8 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
                                                             resample_factor=resample_factor,
                                                             data_processing=data_processing, dtw_attack=dtw_attack,
                                                             result_selection_method=result_selection_method,
-                                                            standardized_evaluation=True, n_jobs=n_jobs)
+                                                            standardized_evaluation=True, n_jobs=n_jobs,
+                                                            subject_ids=dataset.subject_list)
 
         # Run DTW-Attack
         start_attack = time.perf_counter()
@@ -151,9 +152,9 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
     methods = ["non_stress"]
     subject_ids = [dataset.subject_list[0]]
     if dataset.name == "WESAD-cGAN":
-        configuration_dataset = WesadCGan(dataset_size=15)
+        configuration_dataset = WesadCGan(dataset_size=15, resample_factor=resample_factor)
     elif dataset.name == "WESAD-dGAN":
-        configuration_dataset = WesadDGan(dataset_size=15)
+        configuration_dataset = WesadDGan(dataset_size=15, resample_factor=resample_factor)
     else:
         configuration_dataset = dataset
 
@@ -179,7 +180,8 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
 
 
 def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, resample_factor: int,
-                      result_selection_method: str, noise_multipliers: list, runs: int = 10, n_jobs: int = -1):
+                      result_selection_method: str, noise_multipliers: list, subject_ids: List[int] = None,
+                      runs: int = 10, n_jobs: int = -1):
     """
     Run simulation of noisy DTW attacks with repetitions for all specified noise multipliers;
     Save average precision@1 results and standard deviations
@@ -189,6 +191,7 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param noise_multipliers: List with all noise multipliers (scale-parameter of laplace distribution) > 0.0
+    :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param runs: Specify number of runs to repeat DTW attacks and average precision@1 scores
     :param n_jobs: Number of processes to use (parallelization)
     """
@@ -199,7 +202,7 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
         best_configuration = calculate_best_configurations(dataset=wesad, resample_factor=resample_factor,
                                                            data_processing=data_processing, dtw_attack=dtw_attack,
                                                            result_selection_method=result_selection_method,
-                                                           n_jobs=n_jobs)
+                                                           n_jobs=n_jobs, subject_ids=subject_ids)
     # Generate best-configurations if not available
     except KeyError:
         print("Couldn't load best configurations for " + str(dtw_attack.name) + " with WESAD data set!" +
@@ -224,7 +227,7 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
         best_configuration = calculate_best_configurations(dataset=wesad, resample_factor=resample_factor,
                                                            data_processing=data_processing, dtw_attack=dtw_attack,
                                                            result_selection_method=result_selection_method,
-                                                           n_jobs=n_jobs)
+                                                           n_jobs=n_jobs, subject_ids=subject_ids)
 
     test_window_sizes = [best_configuration["window"]]
     dtw_attack.windows = test_window_sizes
@@ -232,7 +235,7 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
     overall_results = calculate_optimized_precisions(dataset=wesad, resample_factor=resample_factor,
                                                      data_processing=data_processing, dtw_attack=dtw_attack,
                                                      result_selection_method=result_selection_method,
-                                                     n_jobs=n_jobs)
+                                                     n_jobs=n_jobs, subject_ids=subject_ids)
     precision_at_1 = overall_results[1]["results"]
 
     results = dict()
@@ -254,7 +257,7 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
             overall_results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
                                                              data_processing=data_processing, dtw_attack=dtw_attack,
                                                              result_selection_method=result_selection_method,
-                                                             n_jobs=n_jobs)
+                                                             n_jobs=n_jobs, subject_ids=subject_ids)
 
             precision_at_1 = overall_results[1]["results"]
             results[noise_multiplier].setdefault(run, precision_at_1)
