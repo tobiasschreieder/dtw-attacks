@@ -178,7 +178,7 @@ def realistic_ranking(distances: Dict[str, Dict[int, Dict[int, float]]]) -> Dict
 
 
 def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]],
-                         class_distribution: Dict[str, Dict[str, float]],
+                         class_distribution: Dict[str, Dict[str, float]], ground_truth: int,
                          step_width: float = 0.01) \
         -> Dict[float, Dict[str, Dict[str, float]]]:
     """
@@ -245,17 +245,11 @@ def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]],
 
                 if threshold:
                     if match:
-                        classification[t][method][target].setdefault("decision", "TP")
                         tp += 1
                     else:
-                        classification[t][method][target].setdefault("decision", "FP")
                         fp += 1
                 else:
-                    if match:
-                        classification[t][method][target].setdefault("decision", "FN")
-                        fn += 1
-                    else:
-                        classification[t][method][target].setdefault("decision", "TN")
+                    fn = ground_truth - tp
 
             # Calculate recall, precision and f1
             try:
@@ -404,7 +398,8 @@ def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n
 
     class_distribution = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
                                                 data_processing=StandardProcessing())
-    results = threshold_evaluation(ranking=ranking, class_distribution=class_distribution)
+    results = threshold_evaluation(ranking=ranking, class_distribution=class_distribution,
+                                   ground_truth=round(len(dataset_included.data) * overlaps[overlap]))
 
     save_path = os.path.join(cfg.out_dir, "Threshold-Attacks")
     os.makedirs(save_path, exist_ok=True)

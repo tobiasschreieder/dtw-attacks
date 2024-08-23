@@ -488,9 +488,6 @@ def run_evaluation_threshold_attacks(datasets: List[Dataset], overlap: str):
         # Plot the mean line
         ax = group.plot('threshold', 'f1', label=key, ax=ax, linestyle=linestyle)
 
-        # Get the color of the line
-        color = ax.get_lines()[-1].get_color()
-
     # Set the x-axis limit to start from 0
     ax.set_xlim(left=0, right=1)
 
