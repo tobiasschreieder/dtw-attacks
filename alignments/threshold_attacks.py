@@ -2,9 +2,10 @@ from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
 from evaluation.optimization.class_evaluation import get_class_distribution
 from evaluation.optimization.overall_evaluation import calculate_best_configurations
 from preprocessing.datasets.dataset import Dataset
+from preprocessing.datasets.load_wesad import Wesad
 from preprocessing.datasets.load_cgan import WesadCGan
 from preprocessing.datasets.load_dgan import WesadDGan
-from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.data_processing.standard_processing import StandardProcessing
 from config import Config
 
 from typing import Dict, List
@@ -20,14 +21,13 @@ import json
 cfg = Config.get()
 
 
-def threshold_slicing_dtw_attack(dataset_included: Dataset, dataset_excluded: Dataset, data_processing: DataProcessing,
-                                 resample_factor: int, best_configurations: Dict, n_jobs: int = -1) \
+def threshold_slicing_dtw_attack(dataset_included: Dataset, dataset_excluded: Dataset, resample_factor: int,
+                                 best_configurations: Dict, n_jobs: int = -1) \
         -> Dict[str, Dict[int, Dict[int, Dict[str, Dict[str, float]]]]]:
     """
     Execute Slicing-DTW-Attack with dataset A and B
     :param dataset_included: Dataset A
     :param dataset_excluded: Dataset B with n overlapping subjects to A and len(A)-n different subjects
-    :param data_processing: Specify type of data-processing
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param best_configurations: Dictionary with best configurations (window-size, sensor_combination, ...) for dataset
     with 15 subjects
@@ -94,9 +94,9 @@ def threshold_slicing_dtw_attack(dataset_included: Dataset, dataset_excluded: Da
     methods = dataset_included.get_classes()
     dtw_attack = SlicingDtwAttack()
     data_dict_included = dataset_included.load_dataset(resample_factor=resample_factor,
-                                                       data_processing=data_processing)
+                                                       data_processing=StandardProcessing())
     data_dict_excluded = dataset_excluded.load_dataset(resample_factor=resample_factor,
-                                                       data_processing=data_processing)
+                                                       data_processing=StandardProcessing())
 
     results_final = dict()
     for method in methods:
@@ -114,15 +114,13 @@ def threshold_slicing_dtw_attack(dataset_included: Dataset, dataset_excluded: Da
     return results_final
 
 
-def reduce_distances(results: Dict[str, Dict[int, Dict[int, Dict[str, Dict[str, float]]]]], best_configurations: Dict,
-                     result_selection_method: str) -> Dict[str, Dict[int, Dict[int, float]]]:
+def reduce_distances(results: Dict[str, Dict[int, Dict[int, Dict[str, Dict[str, float]]]]], best_configurations: Dict) \
+        -> Dict[str, Dict[int, Dict[int, float]]]:
     """
     Reduce distances per subject to one single distance using best-configurations and ranking-method "score"
     :param results: Dictionary with distance results
     :param best_configurations: Dictionary with best configurations (window-size, sensor_combination, ...) for dataset
     with 15 subjects
-    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :return: Dictionary with reduced distances
     """
     for method in results:
@@ -140,7 +138,7 @@ def reduce_distances(results: Dict[str, Dict[int, Dict[int, Dict[str, Dict[str, 
         for target in results[method]:
             distances[method].setdefault(target, dict())
             for subject in results[method][target]:
-                res = results[method][target][subject][result_selection_method]
+                res = results[method][target][subject]["min"]
                 distance_list = list()
                 for sensor in best_configurations["sensor"][0]:
                     distance_list.append(res[sensor])
@@ -179,13 +177,13 @@ def realistic_ranking(distances: Dict[str, Dict[int, Dict[int, float]]]) -> Dict
     return ranking
 
 
-def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]], ground_truth: List[int],
-                         class_distribution: Dict[str, Dict[str, float]], step_width: float = 0.05) \
+def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]],
+                         class_distribution: Dict[str, Dict[str, float]],
+                         step_width: float = 0.01) \
         -> Dict[float, Dict[str, Dict[str, float]]]:
     """
     Calculate recall, precision and f1 for different thresholds
     :param ranking: Dictionary with ranking results
-    :param ground_truth: List with lists of included subject-ids
     :param class_distribution: Dictionary with proportion stress and non-stress data
     :param step_width: Float with step width for threshold (step_width >= 0.01 !)
     :return: Dictionary with evaluation results (recall, precision, f1)
@@ -203,8 +201,10 @@ def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]], ground
                 distance = ranking[method][target][subject]
                 if max_threshold < distance:
                     max_threshold = distance
-    max_threshold = Decimal(max_threshold)
-    max_threshold = float(max_threshold.quantize(Decimal(".1"), rounding=ROUND_UP))
+
+    # max_threshold = Decimal(max_threshold)
+    # max_threshold = float(max_threshold.quantize(Decimal(".1"), rounding=ROUND_UP))
+    max_threshold = 1.0
     thresholds = [i / 100.0 for i in range(0, int(max_threshold * 100 + int(step_width * 100)), int(step_width * 100))]
 
     # Test thresholds and matches
@@ -258,9 +258,18 @@ def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]], ground
                         classification[t][method][target].setdefault("decision", "TN")
 
             # Calculate recall, precision and f1
-            recall = tp / (tp + fp)
-            precision = tp / (tp + fn)
-            f1 = (2 * precision * recall) / (precision + recall)
+            try:
+                recall = tp / (tp + fn)
+            except ZeroDivisionError:
+                recall = 0.0
+            try:
+                precision = tp / (tp + fp)
+            except ZeroDivisionError:
+                precision = 0.0
+            try:
+                f1 = (2 * precision * recall) / (precision + recall)
+            except ZeroDivisionError:
+                f1 = 0.0
 
             results[t][method].setdefault("recall", recall)
             results[t][method].setdefault("precision", precision)
@@ -280,84 +289,125 @@ def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]], ground
     return results
 
 
-def run_threshold_attack(dataset: Dataset, overlap: float, resample_factor: int, data_processing: DataProcessing,
-                         result_selection_method: str, n_jobs: int = -1):
+def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n_jobs: int = -1):
     """
     Run threshold Slicing-DTW-Attack considering if target subject is even concluded in dataset
     :param dataset: Specify dataset, which should be used
     :param overlap: Specify overlap (proportion) of subjects included in dataset
+    ("small": 0.125, "medium": 0.5 or "high": 1.0)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
-    :param data_processing: Specify type of data-processing
-    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     """
+    overlaps = {"small": 0.125,
+                "medium": 0.5,
+                "high": 1.0}
+
+    dataset_included = dataset
+    dataset_excluded = dict()
+    best_configurations = dict()
+    if dataset.name != "WESAD":
+        if dataset.name == "WESAD-cGAN":
+            # Dataset size needs to be even!
+            if len(dataset.subject_list) % 2 != 0:
+                print("The dataset size = " + str(len(dataset.data)) +
+                      " is not an even number! Using dataset size = " + str(len(dataset.data) + 1) + "!")
+                dataset = WesadCGan(dataset_size=len(dataset.data) + 1, resample_factor=resample_factor)
+                dataset_included = dataset
+
+            dataset_excluded = WesadCGan(dataset_size=len(dataset.data) + len(dataset.data) - round(len(dataset.data) *
+                                                                                                    overlaps[overlap]),
+                                         resample_factor=resample_factor, n_jobs=n_jobs)
+            excluded_subjects = dataset_excluded.subject_list[len(dataset.data):]
+            dataset_excluded.data = {key: dataset_excluded.data[key] for key in excluded_subjects}
+            dataset_excluded.subject_list = excluded_subjects
+            best_configurations = calculate_best_configurations(dataset=WesadCGan(dataset_size=15,
+                                                                                  resample_factor=1000),
+                                                                resample_factor=resample_factor,
+                                                                data_processing=StandardProcessing(),
+                                                                dtw_attack=SlicingDtwAttack(),
+                                                                result_selection_method="min",
+                                                                n_jobs=n_jobs,
+                                                                subject_ids=[i for i in range(1001, 1016)])
+
+        elif dataset.name == "WESAD-dGAN":
+            # Dataset size needs to be even!
+            if len(dataset.subject_list) % 2 != 0:
+                print("The dataset size = " + str(len(dataset.data)) +
+                      " is not an even number! Using dataset size = " + str(len(dataset.data) + 1) + "!")
+                dataset = WesadDGan(dataset_size=len(dataset.data) + 1, resample_factor=resample_factor)
+                dataset_included = dataset
+
+            dataset_excluded = WesadCGan(dataset_size=len(dataset.data) + len(dataset.data) - round(len(dataset.data) *
+                                                                                                    overlaps[overlap]),
+                                         resample_factor=resample_factor, n_jobs=n_jobs)
+            excluded_subjects = dataset_excluded.subject_list[len(dataset.data):]
+            dataset_excluded.data = {key: dataset_excluded.data[key] for key in excluded_subjects}
+            dataset_excluded.subject_list = excluded_subjects
+            best_configurations = calculate_best_configurations(dataset=WesadDGan(dataset_size=15,
+                                                                                  resample_factor=1000),
+                                                                resample_factor=resample_factor,
+                                                                data_processing=StandardProcessing(),
+                                                                dtw_attack=SlicingDtwAttack(),
+                                                                result_selection_method="min",
+                                                                n_jobs=n_jobs,
+                                                                subject_ids=[i for i in range(1001, 1016)])
+
+        overlapping_subjects = dataset.subject_list[0: round(len(dataset.data) *
+                                                             overlaps[overlap])]
+        dataset_overlap = {key: dataset_included.data[key] for key in overlapping_subjects}
+        dataset_excluded.data.update(dataset_overlap)
+        dataset_excluded.data = dict(sorted(dataset_excluded.data.items()))
+        dataset_excluded.subject_list += overlapping_subjects
+        dataset_excluded.subject_list.sort()
+
+    else:  # dataset == WESAD
+        if overlap == "medium":
+            dataset_included = Wesad(dataset_size=10)
+            dataset_excluded = Wesad(dataset_size=15)
+            dataset_excluded.subject_list = [2, 3, 4, 5, 6, 13, 14, 15, 16, 17]
+            excluded_data = dict()
+            for subject, data in dataset_excluded.data.items():
+                if subject in dataset_excluded.subject_list:
+                    excluded_data.setdefault(subject, data)
+            dataset_excluded.data = excluded_data
+
+        elif overlap == "small":
+            dataset_included = Wesad(dataset_size=8)
+            dataset_excluded = Wesad(dataset_size=15)
+            dataset_excluded.subject_list = [2, 10, 11, 13, 14, 15, 16, 17]
+            excluded_data = dict()
+            for subject, data in dataset_excluded.data.items():
+                if subject in dataset_excluded.subject_list:
+                    excluded_data.setdefault(subject, data)
+            dataset_excluded.data = excluded_data
+
+        else:  # overlap == "high"
+            dataset_included = Wesad(dataset_size=15)
+            dataset_excluded = Wesad(dataset_size=15)
+
+        best_configurations = calculate_best_configurations(dataset=Wesad(dataset_size=15),
+                                                            resample_factor=resample_factor,
+                                                            data_processing=StandardProcessing(),
+                                                            dtw_attack=SlicingDtwAttack(),
+                                                            result_selection_method="min",
+                                                            n_jobs=n_jobs,
+                                                            subject_ids=[i for i in range(1001, 1016)])
+
+    # Slicing-DTW-Attack
+    results = threshold_slicing_dtw_attack(dataset_included=dataset_included, dataset_excluded=dataset_excluded,
+                                           resample_factor=resample_factor, best_configurations=best_configurations,
+                                           n_jobs=n_jobs)
+
+    distances = reduce_distances(results=results, best_configurations=best_configurations)
+
+    ranking = realistic_ranking(distances=distances)
+
+    class_distribution = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
+                                                data_processing=StandardProcessing())
+    results = threshold_evaluation(ranking=ranking, class_distribution=class_distribution)
+
     save_path = os.path.join(cfg.out_dir, "Threshold-Attacks")
     os.makedirs(save_path, exist_ok=True)
     filename = dataset.name + "_" + str(len(dataset.subject_list)) + "_threshold_results_" + str(overlap) + ".json"
-
-    try:
-        with open(os.path.join(save_path, filename), "r") as outfile:
-            json.dump(dict, outfile)
-    except FileNotFoundError:
-        print("Threshold attack results for " + dataset.name + " with " + str(len(dataset.subject_list)) +
-              " subjects and overlap=" + str(overlap) + " are not available!")
-        print("Starting calculation of results!")
-
-        dataset_included = dataset
-        dataset_excluded = dict()
-        best_configurations = dict()
-        if dataset.name != "WESAD":
-            if dataset.name == "WESAD-cGAN":
-                dataset_excluded = WesadCGan(dataset_size=len(dataset.data) + round(len(dataset.data) * overlap),
-                                             resample_factor=resample_factor, n_jobs=n_jobs)
-                excluded_subjects = dataset_excluded.subject_list[len(dataset.data):]
-                dataset_excluded.data = {key: dataset_excluded.data[key] for key in excluded_subjects}
-                dataset_excluded.subject_list = excluded_subjects
-                best_configurations = calculate_best_configurations(dataset=WesadCGan(dataset_size=15,
-                                                                                      resample_factor=1000),
-                                                                    resample_factor=resample_factor,
-                                                                    data_processing=data_processing,
-                                                                    dtw_attack=SlicingDtwAttack(),
-                                                                    result_selection_method=result_selection_method,
-                                                                    n_jobs=n_jobs,
-                                                                    subject_ids=[i for i in range(1001, 1016)])
-
-            elif dataset.name == "WESAD-dGAN":
-                dataset_excluded = WesadDGan(dataset_size=len(dataset.data) + round(len(dataset.data) * overlap),
-                                             resample_factor=resample_factor, n_jobs=n_jobs)
-                excluded_subjects = dataset_excluded.subject_list[len(dataset.data):]
-                dataset_excluded.data = {key: dataset_excluded.data[key] for key in excluded_subjects}
-                dataset_excluded.subject_list = excluded_subjects
-                best_configurations = calculate_best_configurations(dataset=WesadDGan(dataset_size=15,
-                                                                                      resample_factor=1000),
-                                                                    resample_factor=resample_factor,
-                                                                    data_processing=data_processing,
-                                                                    dtw_attack=SlicingDtwAttack(),
-                                                                    result_selection_method=result_selection_method,
-                                                                    n_jobs=n_jobs,
-                                                                    subject_ids=[i for i in range(1001, 1016)])
-
-            overlapping_subjects = dataset.subject_list[0: round(len(dataset.data) * overlap)]
-            dataset_overlap = {key: dataset_included.data[key] for key in overlapping_subjects}
-            dataset_excluded.data.update(dataset_overlap)
-            dataset_excluded.data = dict(sorted(dataset_excluded.data.items()))
-            dataset_excluded.subject_list += overlapping_subjects
-            dataset_excluded.subject_list.sort()
-
-            results = threshold_slicing_dtw_attack(dataset_included=dataset_included, dataset_excluded=dataset_excluded,
-                                                   data_processing=data_processing, resample_factor=resample_factor,
-                                                   best_configurations=best_configurations, n_jobs=n_jobs)
-
-            distances = reduce_distances(results=results, best_configurations=best_configurations,
-                                         result_selection_method=result_selection_method)
-
-            ranking = realistic_ranking(distances=distances)
-
-            class_distribution = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
-                                                        data_processing=data_processing)
-            results = threshold_evaluation(ranking=ranking, ground_truth=dataset_included.subject_list,
-                                           class_distribution=class_distribution)
-
-            with open(os.path.join(save_path, filename), "w") as outfile:
-                json.dump(results, outfile)
+    with open(os.path.join(save_path, filename), "w") as outfile:
+        json.dump(results, outfile)

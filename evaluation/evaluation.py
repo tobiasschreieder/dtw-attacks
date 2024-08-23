@@ -434,3 +434,69 @@ def run_evaluation_privacy_usability(dtw_attacks: List[DtwAttack]):
     plt.xlabel(r'noise multiplier ($\sigma$)')
     plt.savefig(os.path.join(privacy_path, "privacy_vs_usability.pdf"), format="pdf", bbox_inches="tight")
     plt.show()
+
+
+def run_evaluation_threshold_attacks(datasets: List[Dataset], overlap: str):
+    """
+    Evaluation of threshold attacks; Create PDF including f1 results for given datasets and overlap for all thresholds
+    :param datasets: List with all datasets that should be considered in evaluation
+    :param overlap: Specify overlap (proportion) of subjects included in dataset
+    ("small": 0.125, "medium": 0.5 or "high": 1.0)
+    """
+    f1_results = dict()
+    thresholds = list()
+    labels = list()
+    save_path = os.path.join(cfg.out_dir, "Threshold-Attacks")
+    for dataset in datasets:
+        try:
+            filename = (dataset.name + "_" + str(len(dataset.subject_list)) + "_threshold_results_" + str(overlap) +
+                        ".json")
+            with open(os.path.join(save_path, filename), "r") as outfile:
+                results = json.load(outfile)
+                results = {float(k): v for k, v in results.items()}
+                labels.append(dataset.name)
+
+                f1_results.setdefault(dataset.name, list())
+                for threshold in results:
+                    f1_results[dataset.name].append(results[threshold]["mean"]["f1"])
+                    if threshold not in thresholds:
+                        thresholds.append(threshold)
+
+        except FileNotFoundError:
+            print("Threshold attack results for " + dataset.name + " with " + str(len(dataset.subject_list)) +
+                  " subjects and overlap=" + str(overlap) + " are not available!")
+
+    threshold_results = pd.DataFrame(columns=["threshold", "dataset", "f1"])
+    for dataset in labels:
+        for i in range(0, len(f1_results[dataset])):
+            new_row = pd.DataFrame({
+                "threshold": [thresholds[i]],
+                "dataset": [dataset],
+                "f1": [f1_results[dataset][i]],
+            })
+            threshold_results = pd.concat([threshold_results, new_row], axis=0)
+
+    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=plt.cm.Set1.colors)
+    plt.rcParams.update({"font.size": 14})
+    sns.set_style("whitegrid")
+
+    fig, ax = plt.subplots()
+
+    for key, group in threshold_results.groupby("dataset"):
+        linestyle = None
+
+        # Plot the mean line
+        ax = group.plot('threshold', 'f1', label=key, ax=ax, linestyle=linestyle)
+
+        # Get the color of the line
+        color = ax.get_lines()[-1].get_color()
+
+    # Set the x-axis limit to start from 0
+    ax.set_xlim(left=0, right=1)
+
+    plt.legend(loc="lower right", framealpha=0.9)
+    plt.ylabel("F1")
+    plt.xlabel("threshold")
+    plt.savefig(os.path.join(save_path, "threshold_attacks_" + str(overlap) + ".pdf"), format="pdf",
+                bbox_inches="tight")
+    plt.show()
