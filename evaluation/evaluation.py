@@ -20,7 +20,9 @@ from typing import List, Dict, Union
 import os
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import json
+import seaborn as sns
 
 
 cfg = Config.get()
@@ -375,9 +377,9 @@ def run_evaluation_privacy_usability(dtw_attacks: List[DtwAttack]):
 
         attack_mean.setdefault(attack_name, list())
         attack_stdev.setdefault(attack_name, list())
-        for np in attack_results:
-            attack_mean[attack_name].append(attack_results[np]["mean"])
-            attack_stdev[attack_name].append(attack_results[np]["standard-deviation"])
+        for noise_multiplier in attack_results:
+            attack_mean[attack_name].append(attack_results[noise_multiplier]["mean"])
+            attack_stdev[attack_name].append(attack_results[noise_multiplier]["standard-deviation"])
         attack_mean.setdefault("Stress-Detection", stress_detection["stress f1"].to_list())
         attack_stdev.setdefault("Stress-Detection", stress_detection["std"].to_list())
 
@@ -395,13 +397,40 @@ def run_evaluation_privacy_usability(dtw_attacks: List[DtwAttack]):
             })
             privacy_results = pd.concat([privacy_results, new_row], axis=0)
 
+    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=plt.cm.Set1.colors)
+    plt.rcParams.update({"font.size": 14})
+    sns.set_style("whitegrid")
+
     fig, ax = plt.subplots()
+
     for key, group in privacy_results.groupby("attack"):
-        group.plot('noise-multiplier', 'mean', yerr='standard-deviation',
-                   label=key, ax=ax)
-    plt.legend(labels, loc="upper right")  # bbox_to_anchor=(1.5, 0.5)
-    # plt.title(label="Re-Identification vs. Stress-Detection", loc="center")
-    plt.ylabel("p@1 / f1")
-    plt.xlabel('noise-multiplier')
+        linestyle = '--' if key == 'Stress-Detection' else None
+
+        # Plot the mean line
+        ax = group.plot('noise-multiplier', 'mean', label=key, ax=ax, linestyle=linestyle)
+
+        # Get the color of the line
+        color = ax.get_lines()[-1].get_color()
+
+        # Plot the standard deviation as a shaded area
+        ax.fill_between(group['noise-multiplier'],
+                        group['mean'] - group['standard-deviation'],
+                        group['mean'] + group['standard-deviation'],
+                        alpha=0.1, color=color)
+
+    # Customize x-axis ticks to reflect the varying step sizes
+    x_ticks = np.concatenate([np.arange(0, 1.1, 0.1), np.arange(1, 15, 1)])
+    ax.set_xticks(x_ticks)
+
+    # Set labels for only some of the ticks
+    x_labels = [str(int(tick)) if ((tick % 2 == 0 or tick == 2) and tick not in [15]) else '' for tick in x_ticks]
+    ax.set_xticklabels(x_labels)
+
+    # Set the x-axis limit to start from 0
+    ax.set_xlim(left=0, right=15)
+
+    plt.legend(loc="upper right", framealpha=0.9)
+    plt.ylabel("p@1 / F1")
+    plt.xlabel(r'noise multiplier ($\sigma$)')
     plt.savefig(os.path.join(privacy_path, "privacy_vs_usability.pdf"), format="pdf", bbox_inches="tight")
     plt.show()
