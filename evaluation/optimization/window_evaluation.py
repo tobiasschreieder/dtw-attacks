@@ -96,6 +96,7 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
                                                                             method=method,
                                                                             test_window_size=test_window_size,
                                                                             subject_ids=subject_ids)
+
                     # Calculate precision values with rank-method
                     precision_comb = calculate_precision_combinations(dataset=dataset,
                                                                       realistic_ranks_comb=realistic_ranks_comb, k=k,

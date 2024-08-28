@@ -377,24 +377,25 @@ def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_metho
     text += "| max@k | " + "k = " + str(best_k_parameters["results"]) + " | " + "k = " + str(best_k_parameters["max"]) \
             + " | " + "k = " + str(best_k_parameters["random"]) + " |" + "\n"
 
-    text += "## Sensor-weighting tables: \n"
-    for method in weightings:
-        text += "### Table for method: '" + str(method) + "': \n"
-        text += "| k | "
-        for sensor in sensor_combinations:
-            text += str(sensor) + " | "
-        text += "\n"
+    if results[next(iter(results))]["max"] is not None:
+        text += "## Sensor-weighting tables: \n"
+        for method in weightings:
+            text += "### Table for method: '" + str(method) + "': \n"
+            text += "| k | "
+            for sensor in sensor_combinations:
+                text += str(sensor) + " | "
+            text += "\n"
 
-        text += "|---|"
-        for sensor in sensor_combinations:
-            text += "---|"
-        text += "\n"
+            text += "|---|"
+            for sensor in sensor_combinations:
+                text += "---|"
+            text += "\n"
 
-        for k in weightings[method]:
-            for weights in weightings[method][k]:
-                text += "| " + str(k) + " | "
-                for sensor in sensor_combinations:
-                    text += str(weights[sensor]) + " | "
-                text += "\n"
+            for k in weightings[method]:
+                for weights in weightings[method][k]:
+                    text += "| " + str(k) + " | "
+                    for sensor in sensor_combinations:
+                        text += str(weights[sensor]) + " | "
+                    text += "\n"
 
     return text

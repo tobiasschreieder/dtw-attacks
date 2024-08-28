@@ -185,6 +185,7 @@ def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]],
     Calculate recall, precision and f1 for different thresholds
     :param ranking: Dictionary with ranking results
     :param class_distribution: Dictionary with proportion stress and non-stress data
+    :param ground_truth: Number of included subjects to calculate false negatives
     :param step_width: Float with step width for threshold (step_width >= 0.01 !)
     :return: Dictionary with evaluation results (recall, precision, f1)
     """

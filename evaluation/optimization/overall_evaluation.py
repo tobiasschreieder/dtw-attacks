@@ -266,7 +266,11 @@ def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, data_proc
                                                  data_processing=data_processing, dtw_attack=dtw_attack,
                                                  result_selection_method=result_selection_method, k=k, method=method,
                                                  test_window_size=test_window_size)
-            weightings[method].setdefault(k, results["weights"])
+
+            if results == {}:
+                weightings[method].setdefault(k, None)
+            else:
+                weightings[method].setdefault(k, results["weights"])
 
     return weightings
 
