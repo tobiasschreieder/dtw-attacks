@@ -1,4 +1,6 @@
 from evaluation.create_md_tables import create_md_precision_overall
+from evaluation.metrics.calculate_precisions import calculate_precision_combinations
+from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.optimization.class_evaluation import calculate_average_class_precisions, get_best_class_configuration, \
     get_class_distribution
 from evaluation.optimization.rank_method_evaluation import calculate_rank_method_precisions, \
@@ -171,18 +173,107 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
                                                        data_processing=data_processing, dtw_attack=dtw_attack,
                                                        result_selection_method=result_selection_method, n_jobs=n_jobs,
                                                        subject_ids=subject_ids)
-    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
-                                          data_processing=data_processing, dtw_attack=dtw_attack,
-                                          result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                          rank_method=best_configuration["rank_method"],
-                                          average_method=best_configuration["class"],
-                                          sensor_combination=best_configuration["sensor"], subject_ids=subject_ids,
-                                          k_list=k_list)
+    classes = dataset.get_classes()  # Get all classes
+
+    # List with all k for precision@k that should be considered
+    complete_k_list = [i for i in range(1, len(dataset.subject_list) + 1)]
+    # Get class distributions
+    class_distributions = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
+                                                 data_processing=data_processing)
+
+    # Specify paths
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    attack_path = os.path.join(resample_path, dtw_attack.name)
+    processing_path = os.path.join(attack_path, data_processing.name)
+    if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+            dtw_attack.name == MultiSlicingDtwAttack().name):
+        processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
+    evaluations_path = os.path.join(processing_path, "evaluations")
+    results_path = os.path.join(evaluations_path, "results")
+    os.makedirs(results_path, exist_ok=True)
+    path_string = ("SW-DTW_overall-results_" + dataset.name + "_" + str(resample_factor) + ".json")
+
+    # Try to load existing results
+    if os.path.exists(os.path.join(results_path, path_string)):
+        f = open(os.path.join(results_path, path_string), "r")
+        results = json.loads(f.read())
+        results = {int(k): v for k, v in results.items()}
+
+    # Calculate results if not existing
+    else:
+        rank_method = best_configuration["rank_method"]
+        sensor_combination = best_configuration["sensor"]
+        average_method = best_configuration["class"]
+        test_window_size = best_configuration["window"]
+
+        overall_results = dict()
+        for k in complete_k_list:
+            overall_results.setdefault(k, dict())
+            for method in classes:
+                # Calculate realistic ranks with specified rank-method
+                realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset,
+                                                                        resample_factor=resample_factor,
+                                                                        data_processing=data_processing,
+                                                                        dtw_attack=dtw_attack,
+                                                                        result_selection_method=
+                                                                        result_selection_method,
+                                                                        n_jobs=n_jobs,
+                                                                        rank_method=rank_method,
+                                                                        combinations=sensor_combination,
+                                                                        method=method,
+                                                                        test_window_size=test_window_size,
+                                                                        subject_ids=subject_ids)
+
+                # Calculate precision values with rank-method
+                precision_comb = calculate_precision_combinations(dataset=dataset,
+                                                                  realistic_ranks_comb=realistic_ranks_comb, k=k,
+                                                                  subject_ids=subject_ids)
+
+                # Save results in dictionary
+                combination = str()
+                for i in sensor_combination[0]:
+                    combination += i
+                    combination += "+"
+                combination = combination[:-1]
+                overall_results[k].setdefault(method, precision_comb[combination])
+
+        # Calculate mean over classes
+        results = dict()
+        for k in complete_k_list:
+            # averaging method "mean" -> unweighted mean
+            if average_method == "mean":
+                precision_class_list = list()
+                for method in classes:
+                    precision_class_list.append(overall_results[k][method])
+                results.setdefault(k, round(statistics.mean(precision_class_list), 3))
+
+            # averaging method "weighted mean" -> weighted mean
+            else:
+                precision_class_list = []
+                for method in classes:
+                    precision_class_list.append(overall_results[k][method] * class_distributions[method]["mean"])
+                results.setdefault(k, round(sum(precision_class_list), 3))
+
+        # Save interim results as JSON-File
+        with open(os.path.join(results_path, path_string), "w", encoding="utf-8") as outfile:
+            json.dump(results, outfile)
+
+        print("SW-DTW_overall-results.json saved at: " + str(os.path.join(resample_path, path_string)))
+
+    results = {int(k): v for k, v in results.items()}
+
+    reduced_results = dict()
+    if k_list is not None:
+        for k in results:
+            if k in k_list:
+                reduced_results.setdefault(k, results[k])
+        results = reduced_results
 
     overall_results = dict()
     for k in results:
         # Calculate DTW-Results
-        overall_results.setdefault(k, {"results": results[k][best_configuration["window"]]})
+        overall_results.setdefault(k, {"results": results[k]})
 
         # Calculate maximum results
         overall_results[k].setdefault("max", get_average_max_precision(dataset=dataset, resample_factor=resample_factor,
