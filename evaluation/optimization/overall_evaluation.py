@@ -51,6 +51,7 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
     if standardized_evaluation:
         best_rank_method = "score"
         best_class_method = "weighted-mean"
+        best_sensors = [["bvp", "eda", "temp", "acc"]]
     else:
         # Best rank-method
         results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor,
@@ -79,7 +80,8 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
                                           result_selection_method=result_selection_method, n_jobs=n_jobs,
                                           rank_method=best_rank_method, average_method=best_class_method,
                                           subject_ids=subject_ids, k_list=k_list)
-    best_sensors = get_best_sensor_configuration(res=results)
+    if not standardized_evaluation:
+        best_sensors = get_best_sensor_configuration(res=results)
 
     # Best window
     results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
@@ -152,7 +154,8 @@ def get_random_guess_precision(dataset: Dataset, k: int) -> float:
 
 def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                    dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
-                                   subject_ids: List[int], k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
+                                   subject_ids: List[int], k_list: List[int] = None,
+                                   standardized_evaluation: bool = True) -> Dict[int, Dict[str, float]]:
     """
     Calculate overall evaluation precision scores (DTW-results, maximum results and random guess results)
     :param dataset: Specify dataset
@@ -164,6 +167,8 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
     :param n_jobs: Number of processes to use (parallelization)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: List with all k's
+    :param standardized_evaluation: If True -> Use rank-method = "score", average-method = "weighted-mean" and
+    sensor-combination = ["bvp", "eda", "acc", "temp"]
     :return: Dictionary with results
     """
     if k_list is None:
@@ -172,7 +177,8 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
     best_configuration = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
                                                        data_processing=data_processing, dtw_attack=dtw_attack,
                                                        result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                                       subject_ids=subject_ids)
+                                                       subject_ids=subject_ids,
+                                                       standardized_evaluation=standardized_evaluation)
     classes = dataset.get_classes()  # Get all classes
 
     # List with all k for precision@k that should be considered
@@ -192,7 +198,10 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
     evaluations_path = os.path.join(processing_path, "evaluations")
     results_path = os.path.join(evaluations_path, "results")
     os.makedirs(results_path, exist_ok=True)
-    path_string = ("SW-DTW_overall-results_" + dataset.name + "_" + str(resample_factor) + ".json")
+    if standardized_evaluation:
+        path_string = ("SW-DTW_overall-results-naive_" + dataset.name + "_" + str(resample_factor) + ".json")
+    else:
+        path_string = ("SW-DTW_overall-results-best_" + dataset.name + "_" + str(resample_factor) + ".json")
 
     # Try to load existing results
     if os.path.exists(os.path.join(results_path, path_string)):
@@ -305,10 +314,21 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     """
     amount_subjects = len(dataset.subject_list)
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
-    results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
-                                             data_processing=data_processing, dtw_attack=dtw_attack,
-                                             result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                             subject_ids=subject_ids, k_list=k_list)
+    results_naive = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
+                                                   data_processing=data_processing, dtw_attack=dtw_attack,
+                                                   result_selection_method=result_selection_method, n_jobs=n_jobs,
+                                                   subject_ids=subject_ids, k_list=k_list, standardized_evaluation=True)
+    results_best = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
+                                                  data_processing=data_processing, dtw_attack=dtw_attack,
+                                                  result_selection_method=result_selection_method, n_jobs=n_jobs,
+                                                  subject_ids=subject_ids, k_list=k_list, standardized_evaluation=False)
+    results = dict()
+    for k in results_naive:
+        results.setdefault(k, dict())
+        results[k].setdefault("naive", results_naive[k]["results"])
+        results[k].setdefault("best", results_best[k]["results"])
+        results[k].setdefault("max", results_naive[k]["max"])
+        results[k].setdefault("random", results_naive[k]["random"])
     best_k_parameters = dict()
 
     set_method = False
@@ -385,10 +405,24 @@ def run_overall_evaluation(dataset: Dataset, resample_factor: int, data_processi
                                                        data_processing=data_processing, dtw_attack=dtw_attack,
                                                        result_selection_method=result_selection_method, n_jobs=n_jobs,
                                                        subject_ids=subject_ids)
-    overall_results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
-                                                     data_processing=data_processing, dtw_attack=dtw_attack,
-                                                     result_selection_method=result_selection_method, n_jobs=n_jobs,
-                                                     subject_ids=subject_ids)
+    overall_results_naive = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
+                                                           data_processing=data_processing, dtw_attack=dtw_attack,
+                                                           result_selection_method=result_selection_method,
+                                                           n_jobs=n_jobs, subject_ids=subject_ids,
+                                                           standardized_evaluation=True)
+    overall_results_best = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
+                                                          data_processing=data_processing, dtw_attack=dtw_attack,
+                                                          result_selection_method=result_selection_method,
+                                                          n_jobs=n_jobs, subject_ids=subject_ids,
+                                                          standardized_evaluation=False)
+    overall_results = dict()
+    for k in overall_results_naive:
+        overall_results.setdefault(k, dict())
+        overall_results[k].setdefault("naive", overall_results_naive[k]["results"])
+        overall_results[k].setdefault("best", overall_results_best[k]["results"])
+        overall_results[k].setdefault("max", overall_results_naive[k]["max"])
+        overall_results[k].setdefault("random", overall_results_naive[k]["random"])
+
     weightings = get_best_sensor_weightings(dataset=dataset, resample_factor=resample_factor,
                                             data_processing=data_processing, dtw_attack=dtw_attack,
                                             result_selection_method=result_selection_method,

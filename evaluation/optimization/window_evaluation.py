@@ -8,7 +8,7 @@ from evaluation.create_md_tables import create_md_precision_windows
 from evaluation.optimization.class_evaluation import get_class_distribution
 from evaluation.optimization.sensor_evaluation import list_to_string
 from preprocessing.data_processing.data_processing import DataProcessing
-from preprocessing.datasets.dataset import Dataset
+from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from config import Config
 
 from typing import Dict, List
@@ -52,7 +52,8 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
                                                  data_processing=data_processing)
 
     if sensor_combination is None:
-        sensor_combination = [["bvp", "eda", "acc", "temp"]]
+        sensor_combination = get_sensor_combinations(dataset=dataset, resample_factor=resample_factor,
+                                                     data_processing=data_processing)
 
     # Specify paths
     data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
@@ -103,7 +104,13 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
                                                                       subject_ids=subject_ids)
 
                     # Save results in dictionary
-                    results_class[k].setdefault(method, statistics.mean(precision_comb.values()))
+                    selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
+                    combination = str()
+                    for i in selected_sensor_combination[0]:
+                        combination += i
+                        combination += "+"
+                    combination = combination[:-1]
+                    results_class[k].setdefault(method, precision_comb[combination])
 
             window_results_dict.setdefault(test_window_size, results_class)
 
@@ -251,7 +258,7 @@ def get_best_window_configuration(res: Dict[int, Dict[int, float]]) -> int:
 
     if len(best_windows) > 1:
         random.seed(1)
-        best_window = random.choice([int(w) for w in best_windows])
+        best_window = min([int(w) for w in best_windows])  # Choose smallest window
 
     return best_window
 

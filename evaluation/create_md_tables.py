@@ -349,7 +349,8 @@ def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_metho
                                 best_k_parameters: Dict[str, int], sensor_combinations: List[List[str]]) -> str:
     """
     Create text for MD-file with results of overall evaluation and best sensor-weightings
-    :param results: Results with precision values (DTW-results, maximum results, random guess results)
+    :param results: Results with precision values (DTW-results-naive, DTW-results-best, maximum results,
+    random guess results)
     :param rank_method: Specify rank-method ("score" or "rank")
     :param average_method: Specify averaging-method ("mean" or "weighted-mean)
     :param sensor_combination: Specify sensor-combination e.g. "acc+temp" (Choose best one)
@@ -368,14 +369,15 @@ def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_metho
     text += "* Calculated with test-window-size: '" + str(window) + "' \n"
 
     text += "## Precision@k table: \n"
-    text += "| k | DTW-results | sensor weighted | random guess |" + "\n"
-    text += "|---|---|---|---|" + "\n"
+    text += "| k | DTW-results naive | DTW-results best | sensor weighted | random guess |" + "\n"
+    text += "|---|---|---|---|---|" + "\n"
     for k in results:
-        text += "| " + str(k) + " | " + str(results[k]["results"]) + " | " + str(results[k]["max"]) + " | " + \
-                str(results[k]["random"]) + " |" + "\n"
+        text += ("| " + str(k) + " | " + str(results[k]["naive"]) + " | " + str(results[k]["best"]) + " | " +
+                 str(results[k]["max"]) + " | " + str(results[k]["random"]) + " |" + "\n")
 
-    text += "| max@k | " + "k = " + str(best_k_parameters["results"]) + " | " + "k = " + str(best_k_parameters["max"]) \
-            + " | " + "k = " + str(best_k_parameters["random"]) + " |" + "\n"
+    text += ("| max@k | " + "k = " + str(best_k_parameters["naive"]) + " | " + "k = " + str(best_k_parameters["best"]) +
+             " | " + "k = " + str(best_k_parameters["max"]) + " | " + "k = " + str(best_k_parameters["random"]) + " |" +
+             "\n")
 
     if results[next(iter(results))]["max"] is not None:
         text += "## Sensor-weighting tables: \n"

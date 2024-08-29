@@ -83,7 +83,7 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_proc
     test_window_sizes = dtw_attack.windows  # Get all test-windows
 
     # List with all k for precision@k that should be considered
-    complete_k_list = [i for i in range(1, len(dataset.subject_list) + 1)]  # TODO k_list vs subject_ids -> mean
+    complete_k_list = [i for i in range(1, len(dataset.subject_list) + 1)]
 
     # Specify paths
     data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
@@ -129,11 +129,13 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_proc
                                                                       realistic_ranks_comb=realistic_ranks_comb, k=k,
                                                                       subject_ids=subject_ids)
 
-                    # Calculate mean over precision-values per sensor-combinations for specified rank-method
-                    sensor_combined_precision = statistics.mean(precision_comb.values())
-
-                    # Save results in dictionary
-                    results_sensor[k].setdefault(method, sensor_combined_precision)
+                    selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
+                    combination = str()
+                    for i in selected_sensor_combination[0]:
+                        combination += i
+                        combination += "+"
+                    combination = combination[:-1]
+                    results_sensor[k].setdefault(method, precision_comb[combination])
 
             window_results_dict.setdefault(test_window_size, results_sensor)
 

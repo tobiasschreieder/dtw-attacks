@@ -111,15 +111,22 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, dat
                                                                             realistic_ranks_comb_score,
                                                                             k=k, subject_ids=subject_ids)
 
-                    sensor_combined_precision_rank = statistics.mean(precision_comb_rank.values())
-                    sensor_combined_precision_score = statistics.mean(precision_comb_score.values())
+                    selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
+                    combination = str()
+                    for i in selected_sensor_combination[0]:
+                        combination += i
+                        combination += "+"
+                    combination = combination[:-1]
+                    selected_sensor_precision_rank = precision_comb_rank[combination]
+                    selected_sensor_precision_score = precision_comb_score[combination]
 
                     # Calculate mean over results from methods "rank" and "score"
-                    sensor_combined_precision_mean = statistics.mean([sensor_combined_precision_score,
-                                                                     sensor_combined_precision_rank])
+                    sensor_combined_precision_mean = statistics.mean([selected_sensor_precision_score,
+                                                                     selected_sensor_precision_rank])
+
                     # Save results in dictionary
-                    results_sensor.setdefault(k, {"rank": sensor_combined_precision_rank,
-                                                  "score": sensor_combined_precision_score,
+                    results_sensor.setdefault(k, {"rank": selected_sensor_precision_rank,
+                                                  "score": selected_sensor_precision_score,
                                                   "mean": sensor_combined_precision_mean})
 
                 window_results_dict.setdefault(test_window_size, results_sensor)

@@ -315,7 +315,8 @@ def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_pro
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
-    :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
+    :param standardized_evaluation: If True -> Use rank-method = "score", average-method = "weighted-mean" and
+    sensor-combination = ["bvp", "eda", "acc", "temp"]
     :param n_jobs: Number of processes to use (parallelization)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k-parameters
