@@ -1,7 +1,7 @@
-# Re-Identification Attacks on Smartwatch Health Data
+# Slice it up: Unmasking Users in De-Identified Smartwatch Health Data
 
 This repository contains the implementation, documentation and results of the research project 
-"Re-Identification Attacks on Smartwatch Health Data". Building on the findings of the project 
+"Slice it up: Unmasking Users in De-Identified Smartwatch Health Data". Building on the findings of the project 
 "[Privacy at Risk: Exploiting Similarities in Health Data for Identity Inference](https://github.com/tobiasschreieder/smartwatch-dtw-attack)", 
 a novel and modular attack framework is presented, which includes four dynamic time warping based re-identification attacks.
 
@@ -16,6 +16,7 @@ a novel and modular attack framework is presented, which includes four dynamic t
 - [Complexity Reduction](#complexity-reduction)
 - [Data Model](#data-model)
 - [DTW Attacks](#dtw-attacks)
+- [In-Out Threshold Attacks](#in-out-threshold-attacks)
 - [Multiple Distances](#multiple-distances)
 - [Evaluation Pipeline](#evaluation-pipeline)
 - [Result Overview](#result-overview)
@@ -64,7 +65,7 @@ pip install -r requirements.txt
 ## Attack Framework
 The following figure shows an overview of the eight-stage attack framework. The functionality and the parameters to 
 be specified for the individual stages are briefly described in the following sections. All further information is 
-explained in detail in the attached [master's thesis](./reports/masters_thesis_tobias_schreieder.pdf).
+explained in detail in corresponding paper or in the attached [master's thesis](./reports/masters_thesis_tobias_schreieder.pdf).
 ![attack_framework](reports/images/framework_overview.png)
 
 ## Data Sets
@@ -86,8 +87,8 @@ The DGAN data set was created with the implementation of the linked project. Usi
 
 ```bash
 dataset = Wesad(dataset_size=15)
-dataset = WesadCGan(dataset_size=1000)
-dataset = WesadDGan(dataset_size=1000)
+dataset = WesadCGan(dataset_size=1000, resample_factor=1000)
+dataset = WesadDGan(dataset_size=1000, resample_factor=1000)
 dataset = WesadPrivate(dataset_size=15, noise_multiplier=1.0)
 ```
 
@@ -151,7 +152,7 @@ to the attacked target.
 dataset = Wesad(dataset_size=15)
 resample_factor = 1000
 data_processing = StandardProcessing()
-additional_windows = 1
+additional_windows = 1000  # standard value; will be automatically scaled with resample_factor -> additional_windows / resample_factor
 
 simulate_isolated_dtw_attack(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing, additional_windows=additional_windows)  # is performed for all four attacks.
 ```
@@ -166,11 +167,12 @@ dataset = Wesad(dataset_size=15)
 data_processing = StandardProcessing()
 test_window_sizes = [i for i in range(1, 37)]  # specify for which attack window sizes the DTW attack should be performed
 resample_factor = 1000
-additional_windows = 1
+additional_windows = 1000
 multi = 3  # only needed for MultiDTWAttack() and MultiSlicingDTWAttack()
+subject_ids = None  # use all subjects; else e.g. [2, 3, 4, 5] -> use only subjects in list as target
 
 run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
-               test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3)
+               test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3, subject_ids=subject_ids)
 ```
 
 ## DTW Attacks
@@ -235,6 +237,25 @@ result_selection_method = "mean-min"
 result_selection_method = "mean-mean"
 ```
 
+## In-Out Threshold Attacks
+The DTW attacks only calculate which subject in the data set is most similar to the target being searched for. 
+It is not possible to recognise whether the target is contained in the data set at all. The In-Out attacks introduce a 
+threshold for this purpose. The distance between the target and a subject has to be <= the threshold for a match to be 
+formed (classification target in the data set).
+
+```bash
+resample_factor = 1000
+dataset = WesadCGan(dataset_size=120, resample_factor=resample_factor)  # all data sets can be used
+overlap = "medium"  # or "small" or "high"
+
+run_threshold_attack(dataset=dataset, overlap=overlap, resample_factor=resample_factor)
+run_evaluation_threshold_attacks(datasets=[dataset], overlap=overlap)
+```
+
+**Parameters:**
+* *overlap:* The overlap determines how high the proportion of targets is that are also contained in the data set as a 
+subject. You can choose between "small" = 0.125, "medium" = 0.5 and "high" = 1.0.
+
 ## Evaluation Pipeline
 The DTW attacks are evaluated using a four-stage rank-based evaluation pipeline. For this purpose, the distances are 
 converted into ranks in ascending order, with the smallest distance receiving rank 1. If several subjects receive the 
@@ -283,7 +304,7 @@ data_processing = StandardProcessing()
 resample_factor = 1000
 result_selection_method = "mean"
 test_window_sizes = [i for i in range(1, 13)]
-additional_windows = 1
+additional_windows = 1000  # standard value; will be automatically scaled with resample_factor -> additional_windows / resample_factor
 multi = 3
 
 run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
@@ -334,7 +355,7 @@ run_noisy_attacks(dtw_attack=SlicingDTWAttack(), data_processing=data_processing
 run_noisy_attacks(dtw_attack=MultiSlicingDTWAttack(), data_processing=data_processing, resample_factor=resample_factor,
                   result_selection_method=result_selection_method, noise_multipliers=noise_multipliers, runs=runs)
                   
-def run_evaluation_privacy_usability(dtw_attacks=[SingleDTWAttack, MultiDTWAttack, SlicingDTWAttack, MultiSlicingDTWAttack])
+run_evaluation_privacy_usability(dtw_attacks=[SingleDTWAttack, MultiDTWAttack, SlicingDTWAttack, MultiSlicingDTWAttack])
 ```
 
 ## Ethical Principles
