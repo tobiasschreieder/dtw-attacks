@@ -6,6 +6,7 @@ from evaluation.metrics.calculate_precisions import calculate_precision_combinat
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_classes
 from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from config import Config
 
@@ -129,13 +130,16 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_proc
                                                                       realistic_ranks_comb=realistic_ranks_comb, k=k,
                                                                       subject_ids=subject_ids)
 
-                    selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
-                    combination = str()
-                    for i in selected_sensor_combination[0]:
-                        combination += i
-                        combination += "+"
-                    combination = combination[:-1]
-                    results_sensor[k].setdefault(method, precision_comb[combination])
+                    if data_processing == StandardProcessing():
+                        selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
+                        combination = str()
+                        for i in selected_sensor_combination[0]:
+                            combination += i
+                            combination += "+"
+                        combination = combination[:-1]
+                        results_sensor[k].setdefault(method, precision_comb[combination])
+                    else:
+                        results_sensor[k].setdefault(method, statistics.mean(precision_comb.values()))
 
             window_results_dict.setdefault(test_window_size, results_sensor)
 

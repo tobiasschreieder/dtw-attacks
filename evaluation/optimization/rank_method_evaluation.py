@@ -6,6 +6,7 @@ from evaluation.metrics.calculate_precisions import calculate_precision_combinat
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_rank_method
 from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from config import Config
 
@@ -111,14 +112,18 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, dat
                                                                             realistic_ranks_comb_score,
                                                                             k=k, subject_ids=subject_ids)
 
-                    selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
-                    combination = str()
-                    for i in selected_sensor_combination[0]:
-                        combination += i
-                        combination += "+"
-                    combination = combination[:-1]
-                    selected_sensor_precision_rank = precision_comb_rank[combination]
-                    selected_sensor_precision_score = precision_comb_score[combination]
+                    if data_processing == StandardProcessing():
+                        selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
+                        combination = str()
+                        for i in selected_sensor_combination[0]:
+                            combination += i
+                            combination += "+"
+                        combination = combination[:-1]
+                        selected_sensor_precision_rank = precision_comb_rank[combination]
+                        selected_sensor_precision_score = precision_comb_score[combination]
+                    else:
+                        selected_sensor_precision_rank = statistics.mean(precision_comb_rank.values())
+                        selected_sensor_precision_score = statistics.mean(precision_comb_score.values())
 
                     # Calculate mean over results from methods "rank" and "score"
                     sensor_combined_precision_mean = statistics.mean([selected_sensor_precision_score,

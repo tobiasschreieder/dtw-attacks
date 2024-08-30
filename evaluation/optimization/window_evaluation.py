@@ -8,6 +8,7 @@ from evaluation.create_md_tables import create_md_precision_windows
 from evaluation.optimization.class_evaluation import get_class_distribution
 from evaluation.optimization.sensor_evaluation import list_to_string
 from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from config import Config
 
@@ -104,13 +105,16 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
                                                                       subject_ids=subject_ids)
 
                     # Save results in dictionary
-                    selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
-                    combination = str()
-                    for i in selected_sensor_combination[0]:
-                        combination += i
-                        combination += "+"
-                    combination = combination[:-1]
-                    results_class[k].setdefault(method, precision_comb[combination])
+                    if data_processing == StandardProcessing():
+                        selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
+                        combination = str()
+                        for i in selected_sensor_combination[0]:
+                            combination += i
+                            combination += "+"
+                        combination = combination[:-1]
+                        results_class[k].setdefault(method, precision_comb[combination])
+                    else:
+                        results_class[k].setdefault(method, statistics.mean(precision_comb.values()))
 
             window_results_dict.setdefault(test_window_size, results_class)
 

@@ -9,6 +9,7 @@ from evaluation.optimization.sensor_evaluation import calculate_sensor_precision
     list_to_string
 from evaluation.optimization.window_evaluation import calculate_window_precisions, get_best_window_configuration
 from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from preprocessing.process_results import load_max_precision_results
 from alignments.dtw_attacks.dtw_attack import DtwAttack
@@ -240,12 +241,15 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
                                                                   subject_ids=subject_ids)
 
                 # Save results in dictionary
-                combination = str()
-                for i in sensor_combination[0]:
-                    combination += i
-                    combination += "+"
-                combination = combination[:-1]
-                overall_results[k].setdefault(method, precision_comb[combination])
+                if data_processing == StandardProcessing():
+                    combination = str()
+                    for i in sensor_combination[0]:
+                        combination += i
+                        combination += "+"
+                    combination = combination[:-1]
+                    overall_results[k].setdefault(method, precision_comb[combination])
+                else:
+                    overall_results[k].setdefault(method, statistics.mean(precision_comb.values()))
 
         # Calculate mean over classes
         results = dict()
