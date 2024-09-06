@@ -315,7 +315,7 @@ def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n
             excluded_subjects = dataset_excluded.subject_list[len(dataset.data):]
             dataset_excluded.data = {key: dataset_excluded.data[key] for key in excluded_subjects}
             dataset_excluded.subject_list = excluded_subjects
-            best_configurations = calculate_best_configurations(dataset=WesadCGan(dataset_size=15,
+            best_configurations = calculate_best_configurations(dataset=WesadCGan(dataset_size=100,
                                                                                   resample_factor=1000),
                                                                 resample_factor=resample_factor,
                                                                 data_processing=StandardProcessing(),
@@ -338,7 +338,7 @@ def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n
             excluded_subjects = dataset_excluded.subject_list[len(dataset.data):]
             dataset_excluded.data = {key: dataset_excluded.data[key] for key in excluded_subjects}
             dataset_excluded.subject_list = excluded_subjects
-            best_configurations = calculate_best_configurations(dataset=WesadDGan(dataset_size=15,
+            best_configurations = calculate_best_configurations(dataset=WesadDGan(dataset_size=100,
                                                                                   resample_factor=1000),
                                                                 resample_factor=resample_factor,
                                                                 data_processing=StandardProcessing(),
