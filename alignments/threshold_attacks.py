@@ -284,7 +284,8 @@ def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]],
     return results
 
 
-def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n_jobs: int = -1):
+def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n_jobs: int = -1,
+                         standardized_evaluation: bool = True):
     """
     Run threshold Slicing-DTW-Attack considering if target subject is even concluded in dataset
     :param dataset: Specify dataset, which should be used
@@ -292,6 +293,7 @@ def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n
     ("small": 0.125, "medium": 0.5 or "high": 1.0)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param n_jobs: Number of processes to use (parallelization)
+    :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
     """
     overlaps = {"small": 0.125,
                 "medium": 0.5,
@@ -322,7 +324,8 @@ def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n
                                                                 dtw_attack=SlicingDtwAttack(),
                                                                 result_selection_method="min",
                                                                 n_jobs=n_jobs,
-                                                                subject_ids=[i for i in range(1001, 1016)])
+                                                                subject_ids=[i for i in range(1001, 1016)],
+                                                                standardized_evaluation=standardized_evaluation)
 
         elif dataset.name == "WESAD-dGAN":
             # Dataset size needs to be even!
@@ -345,7 +348,8 @@ def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n
                                                                 dtw_attack=SlicingDtwAttack(),
                                                                 result_selection_method="min",
                                                                 n_jobs=n_jobs,
-                                                                subject_ids=[i for i in range(1001, 1016)])
+                                                                subject_ids=[i for i in range(1001, 1016)],
+                                                                standardized_evaluation=standardized_evaluation)
 
         overlapping_subjects = dataset.subject_list[0: round(len(dataset.data) *
                                                              overlaps[overlap])]
@@ -386,7 +390,8 @@ def run_threshold_attack(dataset: Dataset, overlap: str, resample_factor: int, n
                                                             dtw_attack=SlicingDtwAttack(),
                                                             result_selection_method="min",
                                                             n_jobs=n_jobs,
-                                                            subject_ids=[i for i in range(1001, 1016)])
+                                                            subject_ids=[i for i in range(1001, 1016)],
+                                                            standardized_evaluation=standardized_evaluation)
 
     # Slicing-DTW-Attack
     results = threshold_slicing_dtw_attack(dataset_included=dataset_included, dataset_excluded=dataset_excluded,
