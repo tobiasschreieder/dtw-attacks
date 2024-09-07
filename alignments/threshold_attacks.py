@@ -171,8 +171,9 @@ def realistic_ranking(distances: Dict[str, Dict[int, Dict[int, float]]]) -> Dict
             else:
                 if target in ranks:
                     del ranks[target]
-                subject = random.choice([ranks.keys()])
-                ranking[method][target] = {subject, ranks[subject]}
+                subjects = [k for k in ranks]
+                subject = random.choice(subjects)
+                ranking[method][target] = {subject: ranks[subject]}
 
     return ranking
 
@@ -205,7 +206,7 @@ def threshold_evaluation(ranking: Dict[str, Dict[int, Dict[int, float]]],
 
     # max_threshold = Decimal(max_threshold)
     # max_threshold = float(max_threshold.quantize(Decimal(".1"), rounding=ROUND_UP))
-    max_threshold = 1.0
+    max_threshold = 2.0
     thresholds = [i / 100.0 for i in range(0, int(max_threshold * 100 + int(step_width * 100)), int(step_width * 100))]
 
     # Test thresholds and matches
