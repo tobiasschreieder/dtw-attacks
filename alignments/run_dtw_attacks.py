@@ -218,7 +218,8 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
                        test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3)
         run_optimization_evaluation(dataset=wesad, resample_factor=resample_factor,
                                     data_processing=data_processing,
-                                    dtw_attack=dtw_attack, result_selection_method=result_selection_method)
+                                    dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                                    standardized_evaluation=standardized_evaluation)
         run_calculate_max_precision(dataset=wesad, resample_factor=resample_factor,
                                     data_processing=data_processing,
                                     dtw_attack=dtw_attack, result_selection_method=result_selection_method,
@@ -239,7 +240,8 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
     overall_results = calculate_optimized_precisions(dataset=wesad, resample_factor=resample_factor,
                                                      data_processing=data_processing, dtw_attack=dtw_attack,
                                                      result_selection_method=result_selection_method,
-                                                     n_jobs=n_jobs, subject_ids=subject_ids)
+                                                     n_jobs=n_jobs, subject_ids=subject_ids,
+                                                     standardized_evaluation=standardized_evaluation)
     precision_at_1 = overall_results[1]["results"]
 
     results = dict()
@@ -257,11 +259,13 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
                            test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3)
             run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor,
                                         data_processing=data_processing, dtw_attack=dtw_attack,
-                                        result_selection_method=result_selection_method)
+                                        result_selection_method=result_selection_method,
+                                        standardized_evaluation=standardized_evaluation)
             overall_results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
                                                              data_processing=data_processing, dtw_attack=dtw_attack,
                                                              result_selection_method=result_selection_method,
-                                                             n_jobs=n_jobs, subject_ids=subject_ids)
+                                                             n_jobs=n_jobs, subject_ids=subject_ids,
+                                                             standardized_evaluation=standardized_evaluation)
 
             precision_at_1 = overall_results[1]["results"]
             results[noise_multiplier].setdefault(run, precision_at_1)
