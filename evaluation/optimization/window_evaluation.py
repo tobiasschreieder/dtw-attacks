@@ -105,7 +105,7 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
                                                                       subject_ids=subject_ids)
 
                     # Save results in dictionary
-                    if data_processing == StandardProcessing():
+                    if data_processing.name == StandardProcessing().name:
                         selected_sensor_combination = [["bvp", "eda", "temp", "acc"]]
                         combination = str()
                         for i in selected_sensor_combination[0]:

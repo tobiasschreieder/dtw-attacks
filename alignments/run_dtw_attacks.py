@@ -218,8 +218,7 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
                        test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3)
         run_optimization_evaluation(dataset=wesad, resample_factor=resample_factor,
                                     data_processing=data_processing,
-                                    dtw_attack=dtw_attack, result_selection_method=result_selection_method,
-                                    standardized_evaluation=standardized_evaluation)
+                                    dtw_attack=dtw_attack, result_selection_method=result_selection_method)
         run_calculate_max_precision(dataset=wesad, resample_factor=resample_factor,
                                     data_processing=data_processing,
                                     dtw_attack=dtw_attack, result_selection_method=result_selection_method,

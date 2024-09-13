@@ -241,7 +241,7 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
                                                                   subject_ids=subject_ids)
 
                 # Save results in dictionary
-                if data_processing == StandardProcessing():
+                if data_processing.name == StandardProcessing().name:
                     combination = str()
                     for i in sensor_combination[0]:
                         combination += i
