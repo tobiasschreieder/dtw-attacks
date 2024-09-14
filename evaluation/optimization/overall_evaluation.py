@@ -289,12 +289,17 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
         overall_results.setdefault(k, {"results": results[k]})
 
         # Calculate maximum results
-        overall_results[k].setdefault("max", get_average_max_precision(dataset=dataset, resample_factor=resample_factor,
-                                                                       data_processing=data_processing,
-                                                                       dtw_attack=dtw_attack,
-                                                                       result_selection_method=result_selection_method,
-                                                                       average_method=best_configuration["class"],
-                                                                       window=best_configuration["window"], k=k))
+        if len(results.keys()) <= 3:
+            overall_results[k].setdefault("max", get_average_max_precision(dataset=dataset,
+                                                                           resample_factor=resample_factor,
+                                                                           data_processing=data_processing,
+                                                                           dtw_attack=dtw_attack,
+                                                                           result_selection_method=
+                                                                           result_selection_method,
+                                                                           average_method=best_configuration["class"],
+                                                                           window=best_configuration["window"], k=k))
+        else:
+            overall_results[k].setdefault("max", None)
 
         # Calculate random guess results
         overall_results[k].setdefault("random", get_random_guess_precision(dataset=dataset, k=k))
@@ -347,6 +352,9 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
                 if best_k_parameters[method] > k:
                     best_k_parameters[method] = k
         set_method = True
+
+    if best_k_parameters["max"] == len(results):
+        best_k_parameters["max"] = None
 
     return best_k_parameters
 

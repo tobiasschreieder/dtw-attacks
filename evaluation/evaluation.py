@@ -73,7 +73,8 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
     if test_window_sizes is None:
         test_window_sizes = [best_configurations["window"]]
     if k_list is None:
-        k_list = [i for i in range(1, len(dataset.subject_list) + 1)]
+        # k_list = [i for i in range(1, len(dataset.subject_list) + 1)]
+        k_list = [1, 3, 5]
 
     for test_window_size in test_window_sizes:
         for method in methods:
