@@ -99,7 +99,7 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
                                                             resample_factor=resample_factor,
                                                             data_processing=data_processing, dtw_attack=dtw_attack,
                                                             result_selection_method=result_selection_method,
-                                                            standardized_evaluation=True, n_jobs=n_jobs,
+                                                            standardized_evaluation=False, n_jobs=n_jobs,
                                                             subject_ids=dataset.subject_list)
 
         # Run DTW-Attack
