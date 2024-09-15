@@ -152,9 +152,9 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
     methods = ["non_stress"]
     subject_ids = [dataset.subject_list[0]]
     if dataset.name == "WESAD-cGAN":
-        configuration_dataset = WesadCGan(dataset_size=15, resample_factor=resample_factor)
+        configuration_dataset = WesadCGan(dataset_size=100, resample_factor=resample_factor)
     elif dataset.name == "WESAD-dGAN":
-        configuration_dataset = WesadDGan(dataset_size=15, resample_factor=resample_factor)
+        configuration_dataset = WesadDGan(dataset_size=100, resample_factor=resample_factor)
     else:
         configuration_dataset = dataset
 
