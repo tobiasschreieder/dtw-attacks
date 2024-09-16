@@ -81,7 +81,8 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
 
 
 def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                 additional_windows: int = 1000, n_jobs: int = -1):
+                                 additional_windows: int = 1000, n_jobs: int = -1,
+                                 use_manual_window_sizes: bool = True):
     """
     Simulate DTW-Attacks for just one isolated subject and save runtimes
     :param dataset: Specify dataset, which should be used
@@ -89,6 +90,7 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
     :param data_processing: Specify type of data-processing
     :param additional_windows: Specify amount of additional windows to be removed around test-window
     :param n_jobs: Number of processes to use (parallelization)
+    :param use_manual_window_sizes: If true use manual window-sizes else calculate best configurations
     """
     def run_isolated_attack(dtw_attack: DtwAttack):
         """
@@ -101,6 +103,15 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
                                                             result_selection_method=result_selection_method,
                                                             standardized_evaluation=False, n_jobs=n_jobs,
                                                             subject_ids=dataset.subject_list)
+        if use_manual_window_sizes:
+            if dtw_attack.name == SingleDtwAttack().name:
+                best_configurations["window"] = 23
+            if dtw_attack.name == MultiDtwAttack().name:
+                best_configurations["window"] = 5
+            if dtw_attack.name == SlicingDtwAttack().name:
+                best_configurations["window"] = 34
+            if dtw_attack.name == MultiSlicingDtwAttack().name:
+                best_configurations["window"] = 10
 
         # Run DTW-Attack
         start_attack = time.perf_counter()
