@@ -1,9 +1,10 @@
-# Slice it up: Unmasking Users in De-Identified Smartwatch Health Data
+# Slice it up: Unmasking User Identities in Smartwatch Health Data
 
 This repository contains the implementation, documentation and results of the research project 
-"Slice it up: Unmasking Users in De-Identified Smartwatch Health Data". Building on the findings of the project 
-"[Privacy at Risk: Exploiting Similarities in Health Data for Identity Inference](https://github.com/tobiasschreieder/smartwatch-dtw-attack)", 
-a novel and modular attack framework is presented, which includes four dynamic time warping based re-identification attacks.
+"Slice it up: Unmasking User Identities in Smartwatch Health Data". Building on the findings of the project 
+"[Privacy at Risk: Exploiting Similarities in Health Data for Identity Inference](https://github.com/tobiasschreieder/smartwatch-dtw-attack)" 
+[(dtw-attacks-v1)](https://github.com/tobiasschreieder/smartwatch-dtw-attack), a novel and modular attack framework is 
+presented, which includes four dynamic time warping based re-identification attacks.
 
 ![attack_scenario](reports/images/attack_scenario.png)
 
@@ -16,44 +17,26 @@ a novel and modular attack framework is presented, which includes four dynamic t
 - [Complexity Reduction](#complexity-reduction)
 - [Data Model](#data-model)
 - [DTW Attacks](#dtw-attacks)
-- [In-Out Threshold Attacks](#in-out-threshold-attacks)
-- [Multiple Distances](#multiple-distances)
 - [Evaluation Pipeline](#evaluation-pipeline)
 - [Result Overview](#result-overview)
+- [In-Out Threshold Attacks](#in-out-threshold-attacks)
+- [Mitigating DTW-Attacks](#mitigating-dtw-attacks)
+- [Multiple Distances](#multiple-distances)
 - [Ethical Principles](#ethical-principles)
 - [License](#license)
 
 ## Abstract
-Wearing a smartwatch enables efficient collection of health data, which can be used for research and
-comprehensive analysis given the large number of high-quality smartwatch sensors. The smartwatch
-manufacturers themselves also offer their users various applications, such as sleep monitoring, fall
-detection, and stress detection, with the goal of improving the health of the individual. However,
-in addition to numerous analysis and self-optimization options, ensuring privacy when handling
-health data is an important concern, as the collection and analysis of such data is now ubiquitous.
-In particular, health data contains sensitive information about the users of smartwatches, which
-makes it necessary to handle it in a particularly responsible way. In practice, this is often reflected
-in the use of a de-identification approach, which removes any information that directly identifies the
-user, such as name, address, IP address, etc., from the collected data. However, the data itself can
-also be exploited to reveal information and break the supposed anonymity. In this thesis, a novel
-modular attack framework with a total of four similarity-based re-identification attacks on time
-series health data is presented, the use of which reveals significant weaknesses in the de-identification
-approach. The data base is the WESAD data set, with multi-modal smartwatch health data from
-a total of 15 subjects, as well as two synthetic data sets generated with generative adversarial
-networks, each with up to 1000 subjects. Despite privacy-preserving measures, the attacks show
-that a short amount of different sensor data from a target person is sufficient to potentially identify
-them in a database of other samples, based solely on similarities at the sensor level. To compute the
-similarity between two samples, the use of dynamic time warping proved to be very useful. For the
-example scenario where data owners use health data from smartwatches, the results of this work
-show that the target data can be correctly matched in 100% of cases for the WESAD data set and
-in over 93% of cases for the two large-scale synthetic data sets. These results highlight that user
-privacy is already threatened by the data itself, even when personal information is removed. To
-address this privacy threat, the use of several different privacy models is discussed, and a case study
-is conducted in which random noise values of varying levels are added to the health data in addition
-to de-identification. The subject of the study is to compare the curve of the re-identification risk of
-the four attacks with the usability of the data for a stress detection application, under the influence
-of different noise levels. The results of this case study clearly demonstrate that noisy data results in
-a significantly lower re-identification risk for the users contained in the data, while still achieving
-solid stress detection classification results.
+Wearables are widely used for health data collection due to their availability and advanced sensors, enabling smart 
+health applications like stress detection. However, the sensitivity of personal health data raises significant privacy 
+concerns. While user de-identification by removing direct identifiers such as names and addresses is commonly employed 
+to protect privacy, the data itself can still be exploited to re-identify individuals. We introduce a novel framework 
+for similarity-based Dynamic Time Warping (DTW) re-identification attacks on time series health data. Using the WESAD 
+dataset and two larger synthetic datasets, we demonstrate that even short segments of sensor data can achieve perfect
+re-identification with our Slicing-DTW-Attack. Our attack is independent of training data and computes similarity 
+rankings in about 2 minutes for 10,000 subjects on a single CPU core. These findings highlight that de-identification 
+alone is insufficient to protect privacy. As a defense, we show that adding random noise to the signals significantly 
+reduces re-identification risk while only moderately affecting usability in stress detection tasks, offering a 
+promising approach to balancing privacy and utility.
 
 ## Installation
 Python 3.9 was used to perform the experiments. To install the required dependencies, run the following command:
@@ -65,7 +48,7 @@ pip install -r requirements.txt
 ## Attack Framework
 The following figure shows an overview of the eight-stage attack framework. The functionality and the parameters to 
 be specified for the individual stages are briefly described in the following sections. All further information is 
-explained in detail in corresponding paper or in the attached [master's thesis](./reports/masters_thesis_tobias_schreieder.pdf).
+explained in detail in corresponding paper.
 ![attack_framework](reports/images/framework_overview.png)
 
 ## Data Sets
@@ -142,8 +125,8 @@ The data model specifies the purpose for which the DTW attack is to be executed.
 additional windows (data points) are to be cut from the data set at the edges of the attack set in order to avoid an 
 alignment at the edges in the experiments.
 
-### Attack Mode: 
-The attack mode is used in this project to carry out the runtime experiments. This uses an attack set 
+### External Mode: 
+The external mode is used in this project to carry out the runtime experiments. This uses an attack set 
 (sample of signal data of the person to be attacked) and the data set to calculate DTW distances between the attack set 
 and the persons in the data set. After ranking, it is determined which person in the data set most likely corresponds 
 to the attacked target.
@@ -237,25 +220,6 @@ result_selection_method = "mean-min"
 result_selection_method = "mean-mean"
 ```
 
-## In-Out Threshold Attacks
-The DTW attacks only calculate which subject in the data set is most similar to the target being searched for. 
-It is not possible to recognise whether the target is contained in the data set at all. The In-Out attacks introduce a 
-threshold for this purpose. The distance between the target and a subject has to be <= the threshold for a match to be 
-formed (classification target in the data set).
-
-```bash
-resample_factor = 1000
-dataset = WesadCGan(dataset_size=120, resample_factor=resample_factor)  # all data sets can be used
-overlap = "medium"  # or "small" or "high"
-
-run_threshold_attack(dataset=dataset, overlap=overlap, resample_factor=resample_factor)
-run_evaluation_threshold_attacks(datasets=[dataset], overlap=overlap)
-```
-
-**Parameters:**
-* *overlap:* The overlap determines how high the proportion of targets is that are also contained in the data set as a 
-subject. You can choose between "small" = 0.125, "medium" = 0.5 and "high" = 1.0.
-
 ## Evaluation Pipeline
 The DTW attacks are evaluated using a four-stage rank-based evaluation pipeline. For this purpose, the distances are 
 converted into ranks in ascending order, with the smallest distance receiving rank 1. If several subjects receive the 
@@ -337,25 +301,50 @@ run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_fa
 plot_distance_heatmap(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)
 ```
 
+## In-Out Threshold Attacks
+The DTW attacks only calculate which subject in the data set is most similar to the target being searched for. 
+It is not possible to recognise whether the target is contained in the data set at all. The In-Out attacks introduce a 
+threshold for this purpose. The distance between the target and a subject has to be <= the threshold for a match to be 
+formed (classification target in the data set).
+
+```bash
+resample_factor = 1000
+dataset = WesadCGan(dataset_size=120, resample_factor=resample_factor)  # all data sets can be used
+overlap = "medium"  # or "small" or "high"
+
+run_threshold_attack(dataset=dataset, overlap=overlap, resample_factor=resample_factor)
+run_evaluation_threshold_attacks(datasets=[dataset], overlap=overlap)
+```
+
+**Parameters:**
+* *overlap:* The overlap determines how high the proportion of targets is that are also contained in the data set as a 
+subject. You can choose between "small" = 0.125, "medium" = 0.5 and "high" = 1.0.
+
+## Mitigating DTW-Attacks
+The aim of the mitigation strategy should be to find a good trade-off between privacy (reduction of the 
+re-identification risk) and utility (usability of the data for applications such as stress detection).
 Perform re-identification attacks on noisy WESAD data set. The data set becomes noisy by adding random noise according 
 to a Laplace distribution. Compare precision@1 scores of the attacks with noisy stress detection f1 scores.
 ```bash
 data_processing = StandardProcessing()
 resample_factor = 1000
-result_selection_method = "min"
 noise_multipliers = [i for i in range(0, 16)]  # specify noise multipliers to be tested
 runs = 10  # specify the number of runs for which the attacks are to be repeated on new noisy data sets
 
+result_selection_method = "min"
 run_noisy_attacks(dtw_attack=SingleDTWAttack(), data_processing=data_processing, resample_factor=resample_factor,
                   result_selection_method=result_selection_method, noise_multipliers=noise_multipliers, runs=runs)
+result_selection_method = "mean"
 run_noisy_attacks(dtw_attack=MultiDTWAttack(), data_processing=data_processing, resample_factor=resample_factor,
                   result_selection_method=result_selection_method, noise_multipliers=noise_multipliers, runs=runs)
+result_selection_method = "min"
 run_noisy_attacks(dtw_attack=SlicingDTWAttack(), data_processing=data_processing, resample_factor=resample_factor,
                   result_selection_method=result_selection_method, noise_multipliers=noise_multipliers, runs=runs)
+result_selection_method = "min-min"
 run_noisy_attacks(dtw_attack=MultiSlicingDTWAttack(), data_processing=data_processing, resample_factor=resample_factor,
                   result_selection_method=result_selection_method, noise_multipliers=noise_multipliers, runs=runs)
                   
-run_evaluation_privacy_usability(dtw_attacks=[SingleDTWAttack, MultiDTWAttack, SlicingDTWAttack, MultiSlicingDTWAttack])
+run_evaluation_privacy_usability(dtw_attacks=[SingleDTWAttack(), MultiDTWAttack(), SlicingDTWAttack(), MultiSlicingDTWAttack()])
 ```
 
 ## Ethical Principles
