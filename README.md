@@ -2,9 +2,9 @@
 
 This repository contains the implementation, documentation and results of the research project 
 "Slice it up: Unmasking User Identities in Smartwatch Health Data". Building on the findings of the project 
-"[Privacy at Risk: Exploiting Similarities in Health Data for Identity Inference](https://github.com/tobiasschreieder/smartwatch-dtw-attack)" 
-[(dtw-attacks-v1)](https://github.com/tobiasschreieder/smartwatch-dtw-attack), a novel and modular attack framework is 
-presented, which includes four dynamic time warping based re-identification attacks.
+"[Privacy at Risk: Exploiting Similarities in Health Data for Identity Inference](https://github.com/tobiasschreieder/smartwatch-dtw-attack)", 
+a novel and modular attack framework is presented, which includes four dynamic time warping based re-identification 
+attacks.
 
 ![attack_scenario](reports/images/attack_scenario.png)
 
