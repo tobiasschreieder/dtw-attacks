@@ -63,10 +63,10 @@ unzipped under experiments/dataset/WESAD to carry out the attacks. Further pre-p
 performed automatically during the first execution. This can take a few minutes.
 * [Conditional GAN (cGAN):](https://github.com/luckyos-code/Privacy-Preserving-Smartwatch-Health-Data-Generation-Using-DP-GANs)
 The cGAN data set was created with the implementation of the linked project. Using the WESAD data set as a basis, 
-1000 synthetic subjects were created. The created cGAN data set can be found under /experiments/dataset/WESAD_cGAN.
+1000 synthetic subjects were created. The created cGAN data set can be found zipped under /dataset/WESAD_cGAN (lfs).
 * [DoppelGANger (DGAN):](https://github.com/luckyos-code/Privacy-Preserving-Smartwatch-Health-Data-Generation-Using-DP-GANs)
 The DGAN data set was created with the implementation of the linked project. Using the WESAD data set as a basis, 
-1000 synthetic subjects were created. The created DGAN data set can be found under /experiments/dataset/WESAD_dGAN.
+1000 synthetic subjects were created. The created DGAN data set can be found zipped under /dataset/WESAD_dGAN (lfs).
 
 ```bash
 dataset = Wesad(dataset_size=15)
