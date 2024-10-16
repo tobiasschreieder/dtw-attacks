@@ -324,7 +324,7 @@ subject. You can choose between "small" = 0.125, "medium" = 0.5 and "high" = 1.0
 The aim of the mitigation strategy should be to find a good trade-off between privacy (reduction of the 
 re-identification risk) and utility (usability of the data for applications such as stress detection).
 Perform re-identification attacks on noisy WESAD data set. The data set becomes noisy by adding random noise according 
-to a Laplace distribution. Compare precision@1 scores of the attacks with noisy stress detection f1 scores.
+to a Laplace distribution. Compare precision@1 scores of the attacks with noisy stress detection F1 scores.
 ```bash
 data_processing = StandardProcessing()
 resample_factor = 1000
